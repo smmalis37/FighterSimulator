@@ -4,7 +4,7 @@ use fighter_simulator::*;
 
 fn main() {
     let f1 = Fighter::new("Alice".to_owned(), 8, 2, 4, 140).unwrap();
-    let f2 = Fighter::new("Bob".to_owned(), 6, 2, 5, 50).unwrap();
+    let f2 = Fighter::new("Bob".to_owned(), 7, 3, 4, 125).unwrap();
 
     Fight::new(&f1, &f2).run_with_reporting(report_handler);
 }
