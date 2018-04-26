@@ -8,14 +8,6 @@ pub enum Stat {
 }
 
 impl Stat {
-    pub fn name(&self) -> &'static str {
-        match self {
-            Stat::Attack => "Attack",
-            Stat::Speed => "Speed",
-            Stat::Endurance => "Endurance",
-        }
-    }
-
     pub fn costs(&self) -> &'static [StatValue] {
         match self {
             Stat::Attack => &[
