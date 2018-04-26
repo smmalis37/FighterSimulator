@@ -10,7 +10,13 @@ fn main() {
     println!("{} successfully registered.", f2.name);
     println!();
 
-    Fight::new(&f1, &f2).run_with_reporting(report_handler);
+    let filename = f1.name.clone() + "Vs" + &f2.name + ".txt";
+    let file = std::fs::File::create(filename).expect("Unable to create log file.");
+
+    Fight::new(&f1, &f2).run_with_reporting(|r| {
+        report_handler(r, std::io::stdout());
+        report_handler(r, &file);
+    });
 }
 
 fn get_fighter() -> Fighter {
@@ -64,36 +70,39 @@ fn get_value<T: std::str::FromStr>(prompt: &str) -> T {
     }
 }
 
-fn report_handler(report: &Report) {
+fn report_handler<T: std::io::Write>(report: &Report, mut output: T) {
     if let Some(new_round) = report.new_round {
-        println!("Start of round {}.", new_round);
-        println!();
+        writeln!(output, "Start of round {}.", new_round).unwrap();
+        writeln!(output).unwrap();
     }
 
     for (attack, remaining_health) in report.attacks.iter().zip(report.remaining_healths.iter()) {
         if let Some(ref atk) = attack {
-            println!(
+            writeln!(
+                output,
                 "{} attacked {} for {} damage.",
                 atk.attacker.name, atk.defender.name, atk.damage
-            );
-            println!("First rolls were {:?}.", atk.first_rolls);
-            println!(
+            ).unwrap();
+            writeln!(output, "First rolls were {:?}.", atk.first_rolls).unwrap();
+            writeln!(
+                output,
                 "{}/{} survived {} endurance.",
                 atk.second_rolls.len(),
                 atk.first_rolls.len(),
                 atk.defender.stats[&Stat::Endurance]
-            );
-            println!("Second rolls were {:?}.", atk.second_rolls);
-            println!(
+            ).unwrap();
+            writeln!(output, "Second rolls were {:?}.", atk.second_rolls).unwrap();
+            writeln!(
+                output,
                 "{} now has {} health left.",
                 atk.defender.name,
                 remaining_health.unwrap()
-            );
-            println!();
+            ).unwrap();
+            writeln!(output).unwrap();
         }
     }
 
     if let Some(ref winner) = report.winner {
-        println!("{} wins!", winner.name);
+        writeln!(output, "{} wins!", winner.name).unwrap();
     }
 }
