@@ -76,14 +76,14 @@ fn report_handler(report: &Report) {
                 "{} attacked {} for {} damage.",
                 atk.attacker.name, atk.defender.name, atk.damage
             );
-            println!("First rolls were {:?}", atk.first_rolls);
+            println!("First rolls were {:?}.", atk.first_rolls);
             println!(
                 "{}/{} survived {} endurance.",
                 atk.second_rolls.len(),
                 atk.first_rolls.len(),
                 atk.defender.stats[&Stat::Endurance]
             );
-            println!("Second rolls were {:?}", atk.second_rolls);
+            println!("Second rolls were {:?}.", atk.second_rolls);
             println!(
                 "{} now has {} health left.",
                 atk.defender.name,
