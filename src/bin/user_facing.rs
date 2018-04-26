@@ -2,7 +2,11 @@ extern crate fighter_simulator;
 
 use fighter_simulator::*;
 
-fn main() {
+use std::fs::*;
+use std::io::*;
+use std::str::FromStr;
+
+pub fn main() {
     let f1 = get_fighter();
     println!("{} successfully registered.", f1.name);
     println!();
@@ -11,10 +15,10 @@ fn main() {
     println!();
 
     let filename = f1.name.clone() + "Vs" + &f2.name + ".txt";
-    let file = std::fs::File::create(filename).expect("Unable to create log file.");
+    let file = File::create(filename).expect("Unable to create log file.");
 
     Fight::new(&f1, &f2).run_with_reporting(|r| {
-        report_handler(r, std::io::stdout());
+        report_handler(r, stdout());
         report_handler(r, &file);
     });
 }
@@ -55,11 +59,11 @@ fn get_fighter() -> Fighter {
     }
 }
 
-fn get_value<T: std::str::FromStr>(prompt: &str) -> T {
+fn get_value<T: FromStr>(prompt: &str) -> T {
     loop {
         let mut buffer = String::new();
         println!("{}", prompt);
-        let read_attempt = std::io::stdin()
+        let read_attempt = stdin()
             .read_line(&mut buffer)
             .map(|_| buffer.trim().parse());
         if let Ok(Ok(value)) = read_attempt {
@@ -70,7 +74,7 @@ fn get_value<T: std::str::FromStr>(prompt: &str) -> T {
     }
 }
 
-fn report_handler<T: std::io::Write>(report: &Report, mut output: T) {
+fn report_handler<T: Write>(report: &Report, mut output: T) {
     if let Some(new_round) = report.new_round {
         writeln!(output, "Start of round {}.", new_round).unwrap();
         writeln!(output).unwrap();
