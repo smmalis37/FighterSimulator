@@ -30,6 +30,8 @@ pub struct Report<'a> {
     pub winner: Option<&'a Fighter>,
 }
 
+const DICE_SIZE: StatValue = 6;
+
 impl<'a> Fight<'a> {
     pub fn new(f1: &'a Fighter, f2: &'a Fighter) -> Fight<'a> {
         Fight {
@@ -113,9 +115,9 @@ impl<'a> Fight<'a> {
 
     fn generate_attack(&self, attacker: &'a Fighter, defender: &'a Fighter) -> Attack<'a> {
         let damage = (0..attacker.stats[&Attack])
-            .map(|_| rand::thread_rng().gen_range(0, 6) + 1)
+            .map(|_| rand::thread_rng().gen_range(0, DICE_SIZE) + 1)
             .filter(|roll| *roll > defender.stats[&Endurance])
-            .map(|_| rand::thread_rng().gen_range(0, 6) + 1)
+            .map(|_| rand::thread_rng().gen_range(0, DICE_SIZE) + 1)
             .sum();
 
         Attack {
