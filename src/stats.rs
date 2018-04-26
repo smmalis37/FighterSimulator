@@ -1,15 +1,41 @@
-pub type Stat = u16;
+pub type StatValue = usize;
 
-pub const ATTACK_COSTS: [Stat; 21] = [
-    0, 5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 450, 160, 180,
-];
+#[derive(Debug, Hash, Eq, PartialEq, Copy, Clone)]
+pub enum Stat {
+    Attack,
+    Speed,
+    Endurance,
+}
 
-pub const SPEED_COSTS: [Stat; 11] = [0, 10, 20, 35, 50, 70, 90, 110, 135, 160, 190];
+impl Stat {
+    pub fn name(&self) -> &'static str {
+        match self {
+            Stat::Attack => "Attack",
+            Stat::Speed => "Speed",
+            Stat::Endurance => "Endurance",
+        }
+    }
 
-pub const ENDURANCE_COSTS: [Stat; 6] = [0, 20, 40, 80, 100, 150];
+    pub fn costs(&self) -> &'static [StatValue] {
+        match self {
+            Stat::Attack => &[
+                0, 5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 450,
+                160, 180,
+            ],
+            Stat::Speed => &[0, 10, 20, 35, 50, 70, 90, 110, 135, 160, 190],
+            Stat::Endurance => &[0, 20, 40, 80, 100, 150],
+        }
+    }
 
-pub const HEALTH_PER_POINT: Stat = 3;
+    pub fn zero_allowed(&self) -> bool {
+        match self {
+            Stat::Attack => false,
+            Stat::Speed => false,
+            Stat::Endurance => true,
+        }
+    }
+}
 
-pub const BASE_HEALTH: Stat = 50;
-
-pub const TOTAL_POINTS: Stat = 200;
+pub const BASE_HEALTH: StatValue = 50;
+pub const HEALTH_PER_POINT: StatValue = 3;
+pub const TOTAL_POINTS: StatValue = 200;

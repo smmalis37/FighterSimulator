@@ -1,17 +1,18 @@
 use rand;
 use rand::Rng;
 
-use fighter::Fighter;
-use stats::Stat;
+use fighter::*;
+use stats::Stat::*;
+use stats::*;
 
 type Round = u32;
 
 #[derive(Debug)]
 pub struct Fight<'a> {
     fighters: [&'a Fighter; 2],
-    current_health: [Stat; 2],
-    ticks_per_round: Stat,
-    next_tick: Stat,
+    current_health: [StatValue; 2],
+    ticks_per_round: StatValue,
+    next_tick: StatValue,
     current_round: Round,
 }
 
@@ -19,7 +20,7 @@ pub struct Fight<'a> {
 pub struct Attack<'a> {
     pub attacker: &'a Fighter,
     pub defender: &'a Fighter,
-    pub damage: Stat,
+    pub damage: StatValue,
 }
 
 #[derive(Debug)]
@@ -34,7 +35,7 @@ impl<'a> Fight<'a> {
         Fight {
             fighters: [f1, f2],
             current_health: [f1.max_health, f2.max_health],
-            ticks_per_round: f1.speed * f2.speed,
+            ticks_per_round: f1.stats[&Speed] * f2.stats[&Speed],
             next_tick: 1,
             current_round: 1,
         }
@@ -68,9 +69,9 @@ impl<'a> Fight<'a> {
         let f0 = self.fighters[0];
         let f1 = self.fighters[1];
 
-        let (first_attacker, second_attacker) = if f0.speed == f1.speed {
+        let (first_attacker, second_attacker) = if f0.stats[&Speed] == f1.stats[&Speed] {
             *rand::thread_rng().choose(&[(0, 1), (1, 0)]).unwrap()
-        } else if f0.speed > f1.speed {
+        } else if f0.stats[&Speed] > f1.stats[&Speed] {
             (0, 1)
         } else {
             (1, 0)
@@ -102,7 +103,7 @@ impl<'a> Fight<'a> {
         let defender = self.fighters[defender_index];
 
         // The inverting of who attacks based on whose speed is weird but it's right
-        let is_attacking = self.next_tick % defender.speed == 0;
+        let is_attacking = self.next_tick % defender.stats[&Speed] == 0;
         if is_attacking {
             let attack = self.generate_attack(attacker, defender);
             report.winner = self.apply_attack(&attack, defender_index);
@@ -111,9 +112,9 @@ impl<'a> Fight<'a> {
     }
 
     fn generate_attack(&self, attacker: &'a Fighter, defender: &'a Fighter) -> Attack<'a> {
-        let damage = (0..attacker.attack)
+        let damage = (0..attacker.stats[&Attack])
             .map(|_| rand::thread_rng().gen_range(0, 6) + 1)
-            .filter(|roll| *roll > defender.endurance)
+            .filter(|roll| *roll > defender.stats[&Endurance])
             .map(|_| rand::thread_rng().gen_range(0, 6) + 1)
             .sum();
 
