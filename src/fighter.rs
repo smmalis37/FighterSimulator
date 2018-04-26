@@ -1,11 +1,11 @@
 use stats::*;
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 #[derive(Debug)]
 pub struct Fighter {
     pub name: String,
-    pub stats: HashMap<Stat, StatValue>,
+    pub stats: BTreeMap<Stat, StatValue>,
     pub max_health: StatValue,
 }
 
@@ -27,7 +27,7 @@ impl Fighter {
         max_health: StatValue,
     ) -> Result<Fighter, FighterStatError> {
         let stats = {
-            let mut map = HashMap::with_capacity(3);
+            let mut map = BTreeMap::new();
             map.insert(Stat::Attack, attack);
             map.insert(Stat::Speed, speed);
             map.insert(Stat::Endurance, endurance);
@@ -44,7 +44,7 @@ impl Fighter {
     }
 
     fn validate_stats(
-        stats: &HashMap<Stat, StatValue>,
+        stats: &BTreeMap<Stat, StatValue>,
         max_health: StatValue,
     ) -> Result<(), FighterStatError> {
         let mut total_cost = 0;

@@ -1,6 +1,6 @@
 pub type StatValue = usize;
 
-#[derive(Debug, Hash, Eq, PartialEq, Copy, Clone)]
+#[derive(Debug, Hash, Eq, PartialEq, Copy, Clone, Ord, PartialOrd)]
 pub enum Stat {
     Attack,
     Speed,
