@@ -41,7 +41,7 @@ impl<'a> Fight<'a> {
             fighters: [f1, f2],
             current_health: [f1.max_health, f2.max_health],
             ticks_per_round: f1.stats[&Speed] * f2.stats[&Speed],
-            next_tick: 1,
+            next_tick: 0,
             current_round: 1,
         }
     }
@@ -62,7 +62,7 @@ impl<'a> Fight<'a> {
 
     fn run_tick(&mut self) -> Report<'a> {
         let mut report = Report {
-            new_round: if self.next_tick == 1 {
+            new_round: if self.next_tick == 0 {
                 Some(self.current_round)
             } else {
                 None
@@ -90,8 +90,8 @@ impl<'a> Fight<'a> {
         }
 
         self.next_tick += 1;
-        if self.next_tick > self.ticks_per_round {
-            self.next_tick = 1;
+        if self.next_tick >= self.ticks_per_round {
+            self.next_tick = 0;
             self.current_round += 1;
         }
 
