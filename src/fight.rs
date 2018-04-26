@@ -4,13 +4,15 @@ use rand::Rng;
 use fighter::Fighter;
 use stats::Stat;
 
+type Round = u32;
+
 #[derive(Debug)]
 pub struct Fight<'a> {
     fighters: [&'a Fighter; 2],
     current_health: [Stat; 2],
     ticks_per_round: Stat,
     next_tick: Stat,
-    current_round: u32,
+    current_round: Round,
 }
 
 #[derive(Debug)]
@@ -22,7 +24,7 @@ pub struct Attack<'a> {
 
 #[derive(Debug)]
 pub struct Report<'a> {
-    pub new_round: Option<u32>,
+    pub new_round: Option<Round>,
     pub attacks: [Option<Attack<'a>>; 2],
     pub winner: Option<&'a Fighter>,
 }
