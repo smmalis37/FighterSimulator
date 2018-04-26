@@ -14,6 +14,8 @@ pub enum FighterStatError {
     IncorrectPointTotal(StatValue),
     ZeroStat(Stat),
     StatAboveMax(Stat),
+    HealthBelowBase,
+    HealthNotCleanlyDivisible,
 }
 
 impl Fighter {
@@ -48,18 +50,28 @@ impl Fighter {
         let mut total_cost = 0;
         for (&stat, &value) in stats.iter() {
             if value == 0 && !stat.zero_allowed() {
-                return Err(FighterStatError::ZeroStat(stat));
+                Err(FighterStatError::ZeroStat(stat))?;
             }
             if value >= stat.costs().len() {
-                return Err(FighterStatError::StatAboveMax(stat));
+                Err(FighterStatError::StatAboveMax(stat))?;
             }
             total_cost += stat.costs()[value];
         }
 
-        total_cost += (max_health - BASE_HEALTH) / HEALTH_PER_POINT;
+        if max_health < BASE_HEALTH {
+            Err(FighterStatError::HealthBelowBase)?;
+        }
+
+        let additional_health = max_health - BASE_HEALTH;
+
+        if additional_health % HEALTH_PER_POINT != 0 {
+            Err(FighterStatError::HealthNotCleanlyDivisible)?;
+        }
+
+        total_cost += additional_health / HEALTH_PER_POINT;
 
         if total_cost != TOTAL_POINTS {
-            return Err(FighterStatError::IncorrectPointTotal(total_cost));
+            Err(FighterStatError::IncorrectPointTotal(total_cost))?;
         }
 
         Ok(())
