@@ -5,6 +5,8 @@ use fighter::*;
 use stats::Stat::*;
 use stats::*;
 
+const DICE_SIZE: StatValue = 6;
+
 type Round = u32;
 
 #[derive(Debug)]
@@ -17,20 +19,21 @@ pub struct Fight<'a> {
 }
 
 #[derive(Debug)]
-pub struct Attack<'a> {
-    pub attacker: &'a Fighter,
-    pub defender: &'a Fighter,
-    pub damage: StatValue,
-}
-
-#[derive(Debug)]
 pub struct Report<'a> {
     pub new_round: Option<Round>,
     pub attacks: [Option<Attack<'a>>; 2],
+    pub remaining_healths: [Option<StatValue>; 2],
     pub winner: Option<&'a Fighter>,
 }
 
-const DICE_SIZE: StatValue = 6;
+#[derive(Debug)]
+pub struct Attack<'a> {
+    pub attacker: &'a Fighter,
+    pub defender: &'a Fighter,
+    pub first_rolls: Vec<StatValue>,
+    pub second_rolls: Vec<StatValue>,
+    pub damage: StatValue,
+}
 
 impl<'a> Fight<'a> {
     pub fn new(f1: &'a Fighter, f2: &'a Fighter) -> Fight<'a> {
@@ -65,6 +68,7 @@ impl<'a> Fight<'a> {
                 None
             },
             attacks: [None, None],
+            remaining_healths: [None, None],
             winner: None,
         };
 
@@ -109,20 +113,27 @@ impl<'a> Fight<'a> {
         if is_attacking {
             let attack = self.generate_attack(attacker, defender);
             report.winner = self.apply_attack(&attack, defender_index);
+            report.remaining_healths[attack_index] = Some(self.current_health[defender_index]);
             report.attacks[attack_index] = Some(attack);
         }
     }
 
     fn generate_attack(&self, attacker: &'a Fighter, defender: &'a Fighter) -> Attack<'a> {
-        let damage = (0..attacker.stats[&Attack])
+        let first_rolls: Vec<_> = (0..attacker.stats[&Attack])
             .map(|_| rand::thread_rng().gen_range(0, DICE_SIZE) + 1)
-            .filter(|roll| *roll > defender.stats[&Endurance])
+            .collect();
+        let second_rolls: Vec<_> = first_rolls
+            .iter()
+            .filter(|roll| **roll > defender.stats[&Endurance])
             .map(|_| rand::thread_rng().gen_range(0, DICE_SIZE) + 1)
-            .sum();
+            .collect();
+        let damage = second_rolls.iter().sum();
 
         Attack {
             attacker,
             defender,
+            first_rolls,
+            second_rolls,
             damage,
         }
     }
