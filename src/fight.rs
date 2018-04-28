@@ -3,12 +3,13 @@ use rand;
 use rand::Rng;
 
 use fighter::*;
+use report::*;
 use stats::Stat::*;
 use stats::*;
 
 const DICE_SIZE: StatValue = 6;
 
-type Round = u32;
+pub(crate) type Round = u32;
 
 #[derive(Debug)]
 pub struct Fight<'a> {
@@ -18,23 +19,6 @@ pub struct Fight<'a> {
     next_tick: StatValue,
     current_round: Round,
     rng: rand::XorShiftRng,
-}
-
-#[derive(Debug)]
-pub struct Report<'a> {
-    pub new_round: Option<Round>,
-    pub attacks: [Option<Attack<'a>>; 2],
-    pub remaining_healths: [Option<StatValue>; 2],
-    pub winner: Option<&'a Fighter>,
-}
-
-#[derive(Debug)]
-pub struct Attack<'a> {
-    pub attacker: &'a Fighter,
-    pub defender: &'a Fighter,
-    pub first_rolls: ArrayVec<[StatValue; 20]>,
-    pub second_rolls: ArrayVec<[StatValue; 20]>,
-    pub damage: StatValue,
 }
 
 impl<'a> Fight<'a> {
@@ -49,7 +33,7 @@ impl<'a> Fight<'a> {
         }
     }
 
-    pub fn run_with_reporting<F: Fn(&Report)>(mut self, report_handler: F) -> &'a Fighter {
+    pub fn run_with_reporting<F: Fn(&FullReport)>(mut self, report_handler: F) -> &'a Fighter {
         loop {
             let report = self.run_tick();
             report_handler(&report);
@@ -59,21 +43,20 @@ impl<'a> Fight<'a> {
         }
     }
 
-    pub fn run(self) -> &'a Fighter {
-        self.run_with_reporting(|_| ())
+    pub fn run(mut self) -> &'a Fighter {
+        loop {
+            let report = self.run_tick::<WinnerOnlyReport>();
+            if let Some(winner) = report.winner {
+                break winner;
+            }
+        }
     }
 
-    fn run_tick(&mut self) -> Report<'a> {
-        let mut report = Report {
-            new_round: if self.next_tick == 0 {
-                Some(self.current_round)
-            } else {
-                None
-            },
-            attacks: [None, None],
-            remaining_healths: [None, None],
-            winner: None,
-        };
+    fn run_tick<R: Report<'a>>(&mut self) -> R {
+        let mut report = R::new();
+        if self.next_tick == 0 {
+            report.set_new_round(self.current_round);
+        }
 
         let f0 = self.fighters[0];
         let f1 = self.fighters[1];
@@ -88,7 +71,7 @@ impl<'a> Fight<'a> {
 
         self.run_half_tick(&mut report, first_attacker, second_attacker, 0);
 
-        if report.winner.is_none() {
+        if report.get_winner().is_none() {
             self.run_half_tick(&mut report, second_attacker, first_attacker, 1);
         }
 
@@ -101,9 +84,9 @@ impl<'a> Fight<'a> {
         report
     }
 
-    fn run_half_tick(
+    fn run_half_tick<R: Report<'a>>(
         &mut self,
-        report: &mut Report<'a>,
+        report: &mut R,
         attacker_index: usize,
         defender_index: usize,
         attack_index: usize,
@@ -115,13 +98,19 @@ impl<'a> Fight<'a> {
         let is_attacking = self.next_tick % defender.stats[Speed] == 0;
         if is_attacking {
             let attack = self.generate_attack(attacker, defender);
-            report.winner = self.apply_attack(&attack, defender_index);
-            report.remaining_healths[attack_index] = Some(self.current_health[defender_index]);
-            report.attacks[attack_index] = Some(attack);
+            if let Some(winner) = self.apply_attack(&attack, defender_index) {
+                report.set_winner(winner);
+            }
+            report.set_remaining_health(attack_index, self.current_health[defender_index]);
+            report.set_attack(attack_index, attack);
         }
     }
 
-    fn generate_attack(&mut self, attacker: &'a Fighter, defender: &'a Fighter) -> Attack<'a> {
+    fn generate_attack(
+        &mut self,
+        attacker: &'a Fighter,
+        defender: &'a Fighter,
+    ) -> AttackReport<'a> {
         let first_rolls: ArrayVec<_> = (0..attacker.stats[Attack])
             .map(|_| self.rng.gen_range(0, DICE_SIZE) + 1)
             .collect();
@@ -132,7 +121,7 @@ impl<'a> Fight<'a> {
             .collect();
         let damage = second_rolls.iter().sum();
 
-        Attack {
+        AttackReport {
             attacker,
             defender,
             first_rolls,
@@ -141,7 +130,11 @@ impl<'a> Fight<'a> {
         }
     }
 
-    fn apply_attack(&mut self, attack: &Attack<'a>, defender_index: usize) -> Option<&'a Fighter> {
+    fn apply_attack(
+        &mut self,
+        attack: &AttackReport<'a>,
+        defender_index: usize,
+    ) -> Option<&'a Fighter> {
         self.current_health[defender_index] =
             self.current_health[defender_index].saturating_sub(attack.damage);
 

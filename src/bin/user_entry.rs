@@ -74,7 +74,7 @@ fn get_value<T: FromStr>(prompt: &str) -> T {
     }
 }
 
-fn report_handler<T: Write>(report: &Report, mut output: T) {
+fn report_handler<T: Write>(report: &FullReport, mut output: T) {
     if let Some(new_round) = report.new_round {
         writeln!(output, "Start of round {}.", new_round).unwrap();
         writeln!(output).unwrap();
