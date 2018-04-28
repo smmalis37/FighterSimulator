@@ -7,6 +7,7 @@ pub struct Fighter {
     pub name: String,
     pub stats: EnumMap<Stat, StatValue>,
     pub max_health: StatValue,
+    _must_use_constructor: (),
 }
 
 #[derive(Debug)]
@@ -40,6 +41,7 @@ impl Fighter {
             name,
             stats,
             max_health,
+            _must_use_constructor: (),
         })
     }
 
