@@ -81,7 +81,7 @@ fn report_handler<T: Write>(report: &Report, mut output: T) {
     }
 
     for (attack, remaining_health) in report.attacks.iter().zip(report.remaining_healths.iter()) {
-        if let Some(ref atk) = attack {
+        if let Some(ref atk) = *attack {
             writeln!(
                 output,
                 "{} attacked {} for {} damage.",

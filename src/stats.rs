@@ -9,7 +9,7 @@ pub enum Stat {
 
 impl Stat {
     pub fn costs(&self) -> &'static [StatValue] {
-        match self {
+        match *self {
             Stat::Attack => &[
                 0, 5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 450,
                 160, 180,
@@ -20,7 +20,7 @@ impl Stat {
     }
 
     pub fn zero_allowed(&self) -> bool {
-        match self {
+        match *self {
             Stat::Attack => false,
             Stat::Speed => false,
             Stat::Endurance => true,

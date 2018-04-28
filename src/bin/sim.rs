@@ -27,7 +27,7 @@ fn main() {
     }
 
     let mut final_results = fighters.iter().zip(results.iter()).collect::<Vec<_>>();
-    final_results.sort_by_key(|(_, w)| *w);
+    final_results.sort_by_key(|&(_, w)| *w);
     for (f, w) in final_results {
         println!("{:?} {:?}", f, w);
     }
