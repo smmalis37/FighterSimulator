@@ -120,13 +120,14 @@ impl<'a> Fight<'a> {
     }
 
     fn generate_attack(&self, attacker: &'a Fighter, defender: &'a Fighter) -> Attack<'a> {
+        let mut rng = rand::thread_rng();
         let first_rolls: ArrayVec<_> = (0..attacker.stats[Attack])
-            .map(|_| rand::thread_rng().gen_range(0, DICE_SIZE) + 1)
+            .map(|_| rng.gen_range(0, DICE_SIZE) + 1)
             .collect();
         let second_rolls: ArrayVec<_> = first_rolls
             .iter()
             .filter(|roll| **roll > defender.stats[Endurance])
-            .map(|_| rand::thread_rng().gen_range(0, DICE_SIZE) + 1)
+            .map(|_| rng.gen_range(0, DICE_SIZE) + 1)
             .collect();
         let damage = second_rolls.iter().sum();
 
