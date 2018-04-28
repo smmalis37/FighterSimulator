@@ -101,8 +101,7 @@ impl<'a> Fight<'a> {
             if let Some(winner) = self.apply_attack(&attack, defender_index) {
                 report.set_winner(winner);
             }
-            report.set_remaining_health(attack_index, self.current_health[defender_index]);
-            report.set_attack(attack_index, attack);
+            report.set_attack(attack_index, attack, self.current_health[defender_index]);
         }
     }
 

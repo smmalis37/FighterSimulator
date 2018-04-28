@@ -31,8 +31,12 @@ pub(crate) trait Report<'a> {
 
     fn set_winner(&mut self, winner: &'a Fighter);
     fn set_new_round(&mut self, new_round: Round);
-    fn set_remaining_health(&mut self, attack_index: usize, current_health: StatValue);
-    fn set_attack(&mut self, attack_index: usize, attack: AttackReport<'a>);
+    fn set_attack(
+        &mut self,
+        attack_index: usize,
+        attack: AttackReport<'a>,
+        current_health: StatValue,
+    );
 }
 
 impl<'a> Report<'a> for FullReport<'a> {
@@ -57,12 +61,14 @@ impl<'a> Report<'a> for FullReport<'a> {
         self.new_round = Some(new_round);
     }
 
-    fn set_remaining_health(&mut self, attack_index: usize, current_health: StatValue) {
-        self.remaining_healths[attack_index] = Some(current_health);
-    }
-
-    fn set_attack(&mut self, attack_index: usize, attack: AttackReport<'a>) {
+    fn set_attack(
+        &mut self,
+        attack_index: usize,
+        attack: AttackReport<'a>,
+        current_health: StatValue,
+    ) {
         self.attacks[attack_index] = Some(attack);
+        self.remaining_healths[attack_index] = Some(current_health);
     }
 }
 
@@ -80,6 +86,11 @@ impl<'a> Report<'a> for WinnerOnlyReport<'a> {
     }
 
     fn set_new_round(&mut self, _new_round: Round) {}
-    fn set_remaining_health(&mut self, _attack_index: usize, _current_health: StatValue) {}
-    fn set_attack(&mut self, _attack_index: usize, _attack: AttackReport<'a>) {}
+    fn set_attack(
+        &mut self,
+        _attack_index: usize,
+        _attack: AttackReport<'a>,
+        _current_health: StatValue,
+    ) {
+    }
 }
