@@ -17,6 +17,7 @@ pub struct Fight<'a> {
     ticks_per_round: StatValue,
     next_tick: StatValue,
     current_round: Round,
+    rng: rand::XorShiftRng,
 }
 
 #[derive(Debug)]
@@ -44,6 +45,7 @@ impl<'a> Fight<'a> {
             ticks_per_round: f1.stats[Speed] * f2.stats[Speed],
             next_tick: 0,
             current_round: 1,
+            rng: rand::weak_rng(),
         }
     }
 
@@ -77,7 +79,7 @@ impl<'a> Fight<'a> {
         let f1 = self.fighters[1];
 
         let (first_attacker, second_attacker) = if f0.stats[Speed] == f1.stats[Speed] {
-            *rand::thread_rng().choose(&[(0, 1), (1, 0)]).unwrap()
+            *self.rng.choose(&[(0, 1), (1, 0)]).unwrap()
         } else if f0.stats[Speed] > f1.stats[Speed] {
             (0, 1)
         } else {
@@ -119,15 +121,14 @@ impl<'a> Fight<'a> {
         }
     }
 
-    fn generate_attack(&self, attacker: &'a Fighter, defender: &'a Fighter) -> Attack<'a> {
-        let mut rng = rand::thread_rng();
+    fn generate_attack(&mut self, attacker: &'a Fighter, defender: &'a Fighter) -> Attack<'a> {
         let first_rolls: ArrayVec<_> = (0..attacker.stats[Attack])
-            .map(|_| rng.gen_range(0, DICE_SIZE) + 1)
+            .map(|_| self.rng.gen_range(0, DICE_SIZE) + 1)
             .collect();
         let second_rolls: ArrayVec<_> = first_rolls
             .iter()
             .filter(|roll| **roll > defender.stats[Endurance])
-            .map(|_| rng.gen_range(0, DICE_SIZE) + 1)
+            .map(|_| self.rng.gen_range(0, DICE_SIZE) + 1)
             .collect();
         let damage = second_rolls.iter().sum();
 
