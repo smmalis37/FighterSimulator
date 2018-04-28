@@ -1,3 +1,4 @@
+use arrayvec::ArrayVec;
 use rand;
 use rand::Rng;
 
@@ -30,8 +31,8 @@ pub struct Report<'a> {
 pub struct Attack<'a> {
     pub attacker: &'a Fighter,
     pub defender: &'a Fighter,
-    pub first_rolls: Vec<StatValue>,
-    pub second_rolls: Vec<StatValue>,
+    pub first_rolls: ArrayVec<[StatValue; 20]>,
+    pub second_rolls: ArrayVec<[StatValue; 20]>,
     pub damage: StatValue,
 }
 
@@ -119,10 +120,10 @@ impl<'a> Fight<'a> {
     }
 
     fn generate_attack(&self, attacker: &'a Fighter, defender: &'a Fighter) -> Attack<'a> {
-        let first_rolls: Vec<_> = (0..attacker.stats[Attack])
+        let first_rolls: ArrayVec<_> = (0..attacker.stats[Attack])
             .map(|_| rand::thread_rng().gen_range(0, DICE_SIZE) + 1)
             .collect();
-        let second_rolls: Vec<_> = first_rolls
+        let second_rolls: ArrayVec<_> = first_rolls
             .iter()
             .filter(|roll| **roll > defender.stats[Endurance])
             .map(|_| rand::thread_rng().gen_range(0, DICE_SIZE) + 1)

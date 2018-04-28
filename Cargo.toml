@@ -6,3 +6,4 @@ authors = ["Steven Malis <smmalis37@gmail.com>"]
 [dependencies]
 rand = "0.4.2"
 enum-map = "0.2.29"
+arrayvec = "0.4.7"
