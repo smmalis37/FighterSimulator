@@ -40,7 +40,7 @@ impl<'a> Fight<'a> {
         Fight {
             fighters: [f1, f2],
             current_health: [f1.max_health, f2.max_health],
-            ticks_per_round: f1.stats[&Speed] * f2.stats[&Speed],
+            ticks_per_round: f1.stats[Speed] * f2.stats[Speed],
             next_tick: 0,
             current_round: 1,
         }
@@ -75,9 +75,9 @@ impl<'a> Fight<'a> {
         let f0 = self.fighters[0];
         let f1 = self.fighters[1];
 
-        let (first_attacker, second_attacker) = if f0.stats[&Speed] == f1.stats[&Speed] {
+        let (first_attacker, second_attacker) = if f0.stats[Speed] == f1.stats[Speed] {
             *rand::thread_rng().choose(&[(0, 1), (1, 0)]).unwrap()
-        } else if f0.stats[&Speed] > f1.stats[&Speed] {
+        } else if f0.stats[Speed] > f1.stats[Speed] {
             (0, 1)
         } else {
             (1, 0)
@@ -109,7 +109,7 @@ impl<'a> Fight<'a> {
         let defender = self.fighters[defender_index];
 
         // The inverting of who attacks based on whose speed is weird but it's right
-        let is_attacking = self.next_tick % defender.stats[&Speed] == 0;
+        let is_attacking = self.next_tick % defender.stats[Speed] == 0;
         if is_attacking {
             let attack = self.generate_attack(attacker, defender);
             report.winner = self.apply_attack(&attack, defender_index);
@@ -119,12 +119,12 @@ impl<'a> Fight<'a> {
     }
 
     fn generate_attack(&self, attacker: &'a Fighter, defender: &'a Fighter) -> Attack<'a> {
-        let first_rolls: Vec<_> = (0..attacker.stats[&Attack])
+        let first_rolls: Vec<_> = (0..attacker.stats[Attack])
             .map(|_| rand::thread_rng().gen_range(0, DICE_SIZE) + 1)
             .collect();
         let second_rolls: Vec<_> = first_rolls
             .iter()
-            .filter(|roll| **roll > defender.stats[&Endurance])
+            .filter(|roll| **roll > defender.stats[Endurance])
             .map(|_| rand::thread_rng().gen_range(0, DICE_SIZE) + 1)
             .collect();
         let damage = second_rolls.iter().sum();

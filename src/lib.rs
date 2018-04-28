@@ -2,6 +2,9 @@ mod fight;
 mod fighter;
 mod stats;
 
+#[macro_use]
+extern crate enum_map;
+
 extern crate rand;
 
 pub use fight::*;

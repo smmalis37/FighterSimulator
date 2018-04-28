@@ -1,11 +1,11 @@
 use stats::*;
 
-use std::collections::BTreeMap;
+use enum_map::EnumMap;
 
 #[derive(Debug)]
 pub struct Fighter {
     pub name: String,
-    pub stats: BTreeMap<Stat, StatValue>,
+    pub stats: EnumMap<Stat, StatValue>,
     pub max_health: StatValue,
 }
 
@@ -27,10 +27,10 @@ impl Fighter {
         max_health: StatValue,
     ) -> Result<Fighter, FighterStatError> {
         let stats = {
-            let mut map = BTreeMap::new();
-            map.insert(Stat::Attack, attack);
-            map.insert(Stat::Speed, speed);
-            map.insert(Stat::Endurance, endurance);
+            let mut map = EnumMap::new();
+            map[Stat::Attack] = attack;
+            map[Stat::Speed] = speed;
+            map[Stat::Endurance] = endurance;
             map
         };
 
@@ -44,11 +44,11 @@ impl Fighter {
     }
 
     fn validate_stats(
-        stats: &BTreeMap<Stat, StatValue>,
+        stats: &EnumMap<Stat, StatValue>,
         max_health: StatValue,
     ) -> Result<(), FighterStatError> {
         let mut total_cost = 0;
-        for (&stat, &value) in stats.iter() {
+        for (stat, &value) in stats.iter() {
             if value == 0 && !stat.zero_allowed() {
                 Err(FighterStatError::ZeroStat(stat))?;
             }

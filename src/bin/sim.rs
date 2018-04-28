@@ -3,6 +3,7 @@ extern crate fighter_simulator;
 use fighter_simulator::*;
 
 fn main() {
+    let time = std::time::SystemTime::now();
     let fighters = gen_fighters();
     let mut results = vec![(0, 0); fighters.len()];
 
@@ -31,6 +32,7 @@ fn main() {
     for (f, w) in final_results {
         println!("{:?} {:?}", f, w);
     }
+    println!("{:?}", time.elapsed().unwrap());
 }
 
 fn gen_fighters() -> Vec<Fighter> {
