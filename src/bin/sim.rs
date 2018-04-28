@@ -1,34 +1,44 @@
 extern crate fighter_simulator;
+extern crate rayon;
 
 use fighter_simulator::*;
+use rayon::prelude::*;
+
+use std::sync::atomic::*;
 
 fn main() {
     let time = std::time::SystemTime::now();
     let fighters = gen_fighters();
-    let mut results = vec![(0, 0); fighters.len()];
+    let results = {
+        let mut v = Vec::with_capacity(fighters.len());
+        for _ in 0..fighters.len() {
+            v.push((AtomicUsize::new(0), AtomicUsize::new(0)));
+        }
+        v
+    };
 
     println!("Simulating {} fighters.", fighters.len());
 
-    for (i1, f1) in fighters.iter().enumerate() {
+    fighters.par_iter().enumerate().for_each(|(i1, f1)| {
         for (mut i2, f2) in fighters.iter().skip(i1 + 1).enumerate() {
             let i2 = i2 + i1 + 1;
-            for _ in 0..10 {
+            for _ in 0..100 {
                 let fight = Fight::new(f1, f2);
                 let winner = fight.run();
 
                 if winner as *const _ == f1 as *const _ {
-                    results[i1].0 += 1;
-                    results[i2].1 += 1;
+                    results[i1].0.fetch_add(1, Ordering::Relaxed);
+                    results[i2].1.fetch_add(1, Ordering::Relaxed);
                 } else {
-                    results[i2].0 += 1;
-                    results[i1].1 += 1;
+                    results[i2].0.fetch_add(1, Ordering::Relaxed);
+                    results[i1].1.fetch_add(1, Ordering::Relaxed);
                 }
             }
         }
-    }
+    });
 
     let mut final_results = fighters.iter().zip(results.iter()).collect::<Vec<_>>();
-    final_results.sort_by_key(|&(_, w)| *w);
+    final_results.sort_by_key(|&(_, w)| w.0.load(Ordering::SeqCst));
     for (f, w) in final_results {
         println!("{:?} {:?}", f, w);
     }
