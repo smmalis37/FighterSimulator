@@ -1,13 +1,11 @@
-use arrayvec::ArrayVec;
-use rand;
-use rand::Rng;
+use rand::*;
 
 use fighter::*;
 use report::*;
 use stats::Stat::*;
 use stats::*;
 
-const DICE_SIZE: StatValue = 6;
+use std::cell::RefCell;
 
 pub(crate) type Round = u32;
 
@@ -18,7 +16,7 @@ pub struct Fight<'a> {
     ticks_per_round: StatValue,
     next_tick: StatValue,
     current_round: Round,
-    rng: rand::XorShiftRng,
+    rng: XorShiftRng,
 }
 
 impl<'a> Fight<'a> {
@@ -29,7 +27,7 @@ impl<'a> Fight<'a> {
             ticks_per_round: f1.stats[Speed] * f2.stats[Speed],
             next_tick: 0,
             current_round: 1,
-            rng: rand::weak_rng(),
+            rng: weak_rng(),
         }
     }
 
@@ -110,17 +108,7 @@ impl<'a> Fight<'a> {
         attacker: &'a Fighter,
         defender: &'a Fighter,
     ) -> A {
-        let first_rolls: ArrayVec<_> = (0..attacker.stats[Attack])
-            .map(|_| self.rng.gen_range(0, DICE_SIZE) + 1)
-            .collect();
-        let second_rolls: ArrayVec<_> = first_rolls
-            .iter()
-            .filter(|roll| **roll > defender.stats[Endurance])
-            .map(|_| self.rng.gen_range(0, DICE_SIZE) + 1)
-            .collect();
-        let damage = second_rolls.iter().sum();
-
-        A::new(attacker, defender, first_rolls, second_rolls, damage)
+        A::new(attacker, defender, &mut self.rng)
     }
 
     fn apply_attack<A: AttackReport<'a>>(
@@ -137,4 +125,23 @@ impl<'a> Fight<'a> {
             None
         }
     }
+}
+
+const DICE_SIZE: StatValue = 6;
+
+pub(crate) fn first_rolls<'a, R: Rng>(
+    attacker: &'a Fighter,
+    rng: &'a RefCell<R>,
+) -> impl Iterator<Item = StatValue> + 'a {
+    (0..attacker.stats[Stat::Attack]).map(move |_| rng.borrow_mut().gen_range(0, DICE_SIZE) + 1)
+}
+
+pub(crate) fn second_rolls<'a, I: Iterator<Item = StatValue> + 'a, R: Rng>(
+    defender: &'a Fighter,
+    first_rolls: I,
+    rng: &'a RefCell<R>,
+) -> impl Iterator<Item = StatValue> + 'a {
+    first_rolls
+        .filter(move |roll| *roll > defender.stats[Stat::Endurance])
+        .map(move |_| rng.borrow_mut().gen_range(0, DICE_SIZE) + 1)
 }

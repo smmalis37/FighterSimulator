@@ -1,8 +1,11 @@
 use arrayvec::ArrayVec;
+use rand::*;
 
-use fight::Round;
+use fight::*;
 use fighter::*;
 use stats::*;
+
+use std::cell::RefCell;
 
 #[derive(Debug)]
 pub struct FullReport<'a> {
@@ -49,13 +52,7 @@ pub(crate) trait Report<'a> {
 }
 
 pub(crate) trait AttackReport<'a> {
-    fn new(
-        attacker: &'a Fighter,
-        defender: &'a Fighter,
-        first_rolls: AttackRolls,
-        second_rolls: AttackRolls,
-        damage: StatValue,
-    ) -> Self;
+    fn new<R: Rng>(attacker: &'a Fighter, defender: &'a Fighter, rng: &mut R) -> Self;
 
     fn get_damage(&self) -> StatValue;
     fn get_attacker(&self) -> &'a Fighter;
@@ -122,13 +119,12 @@ impl<'a> Report<'a> for WinnerOnlyReport<'a> {
 }
 
 impl<'a> AttackReport<'a> for FullAttackReport<'a> {
-    fn new(
-        attacker: &'a Fighter,
-        defender: &'a Fighter,
-        first_rolls: AttackRolls,
-        second_rolls: AttackRolls,
-        damage: StatValue,
-    ) -> Self {
+    fn new<R: Rng>(attacker: &'a Fighter, defender: &'a Fighter, rng: &mut R) -> Self {
+        let rng = RefCell::new(rng);
+        let first_rolls: AttackRolls = first_rolls(attacker, &rng).collect();
+        let second_rolls: AttackRolls =
+            second_rolls(defender, first_rolls.iter().map(|n| *n), &rng).collect();
+        let damage = second_rolls.iter().sum();
         FullAttackReport {
             attacker,
             defender,
@@ -148,14 +144,14 @@ impl<'a> AttackReport<'a> for FullAttackReport<'a> {
 }
 
 impl<'a> AttackReport<'a> for MinAttackReport<'a> {
-    fn new(
-        attacker: &'a Fighter,
-        _defender: &'a Fighter,
-        _first_rolls: AttackRolls,
-        _second_rolls: AttackRolls,
-        damage: StatValue,
-    ) -> Self {
-        MinAttackReport { attacker, damage }
+    fn new<R: Rng>(attacker: &'a Fighter, defender: &'a Fighter, rng: &mut R) -> Self {
+        let rng = RefCell::new(rng);
+        let first_rolls = first_rolls(attacker, &rng);
+        let second_rolls = second_rolls(defender, first_rolls, &rng);
+        MinAttackReport {
+            attacker,
+            damage: second_rolls.sum(),
+        }
     }
 
     fn get_damage(&self) -> StatValue {
