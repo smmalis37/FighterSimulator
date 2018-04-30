@@ -105,11 +105,11 @@ impl<'a> Fight<'a> {
         }
     }
 
-    fn generate_attack(
+    fn generate_attack<A: AttackReport<'a>>(
         &mut self,
         attacker: &'a Fighter,
         defender: &'a Fighter,
-    ) -> AttackReport<'a> {
+    ) -> A {
         let first_rolls: ArrayVec<_> = (0..attacker.stats[Attack])
             .map(|_| self.rng.gen_range(0, DICE_SIZE) + 1)
             .collect();
@@ -120,25 +120,19 @@ impl<'a> Fight<'a> {
             .collect();
         let damage = second_rolls.iter().sum();
 
-        AttackReport {
-            attacker,
-            defender,
-            first_rolls,
-            second_rolls,
-            damage,
-        }
+        A::new(attacker, defender, first_rolls, second_rolls, damage)
     }
 
-    fn apply_attack(
+    fn apply_attack<A: AttackReport<'a>>(
         &mut self,
-        attack: &AttackReport<'a>,
+        attack: &A,
         defender_index: usize,
     ) -> Option<&'a Fighter> {
         self.current_health[defender_index] =
-            self.current_health[defender_index].saturating_sub(attack.damage);
+            self.current_health[defender_index].saturating_sub(attack.get_damage());
 
         if self.current_health[defender_index] == 0 {
-            Some(attack.attacker)
+            Some(attack.get_attacker())
         } else {
             None
         }
