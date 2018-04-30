@@ -7,6 +7,8 @@ use stats::*;
 
 use std::cell::RefCell;
 
+type AttackRolls = ArrayVec<[StatValue; 20]>;
+
 #[derive(Debug)]
 pub struct FullReport<'a> {
     pub new_round: Option<Round>,
@@ -23,8 +25,6 @@ pub struct FullAttackReport<'a> {
     pub second_rolls: AttackRolls,
     pub damage: StatValue,
 }
-
-type AttackRolls = ArrayVec<[StatValue; 20]>;
 
 pub(crate) struct WinnerOnlyReport<'a> {
     pub winner: Option<&'a Fighter>,
