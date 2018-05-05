@@ -5,8 +5,8 @@ use enum_map::EnumMap;
 #[derive(Debug)]
 pub struct Fighter {
     pub name: String,
-    pub stats: EnumMap<Stat, StatValue>,
-    pub max_health: StatValue,
+    pub(crate) stats: EnumMap<Stat, StatValue>,
+    pub(crate) max_health: StatValue,
     _must_use_constructor: (),
 }
 
