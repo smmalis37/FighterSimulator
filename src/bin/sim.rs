@@ -47,7 +47,10 @@ fn main() {
         let win_rate = w as f64 / (w + loss_count) as f64 * 100f64;
         println!(
             "{}\t{} wins\t{} losses\t{:.2}%",
-            f.name, w, loss_count, win_rate
+            f.name(),
+            w,
+            loss_count,
+            win_rate
         );
     }
     println!("{:?}", time.elapsed().unwrap());

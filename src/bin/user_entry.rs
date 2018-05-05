@@ -8,13 +8,13 @@ use std::str::FromStr;
 
 pub fn main() {
     let f1 = get_fighter();
-    println!("{} successfully registered.", f1.name);
+    println!("{} successfully registered.", f1.name());
     println!();
     let f2 = get_fighter();
-    println!("{} successfully registered.", f2.name);
+    println!("{} successfully registered.", f2.name());
     println!();
 
-    let filename = f1.name.clone() + "Vs" + &f2.name + ".txt";
+    let filename = format!("{}Vs{}.txt", f1.name(), f2.name());
     let file = File::create(filename).expect("Unable to create log file.");
 
     Fight::new(&f1, &f2).run_with_reporting(|r| {
@@ -85,7 +85,9 @@ fn report_handler<T: Write>(report: &FullReport, mut output: T) {
             writeln!(
                 output,
                 "{} attacked {} for {} damage.",
-                atk.attacker.name, atk.defender.name, atk.damage
+                atk.attacker.name(),
+                atk.defender.name(),
+                atk.damage
             ).unwrap();
             writeln!(output, "First rolls were {:?}.", atk.first_rolls).unwrap();
             writeln!(
@@ -99,7 +101,7 @@ fn report_handler<T: Write>(report: &FullReport, mut output: T) {
             writeln!(
                 output,
                 "{} now has {} health left.",
-                atk.defender.name,
+                atk.defender.name(),
                 remaining_health.unwrap()
             ).unwrap();
             writeln!(output).unwrap();
@@ -107,6 +109,6 @@ fn report_handler<T: Write>(report: &FullReport, mut output: T) {
     }
 
     if let Some(ref winner) = report.winner {
-        writeln!(output, "{} wins!", winner.name).unwrap();
+        writeln!(output, "{} wins!", winner.name()).unwrap();
     }
 }

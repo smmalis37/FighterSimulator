@@ -4,7 +4,7 @@ use enum_map::EnumMap;
 
 #[derive(Debug)]
 pub struct Fighter {
-    pub name: String,
+    name: String,
     pub(crate) stats: EnumMap<Stat, StatValue>,
     pub(crate) max_health: StatValue,
     _must_use_constructor: (),
@@ -81,5 +81,9 @@ impl Fighter {
 
     pub fn stats(&self) -> (&EnumMap<Stat, StatValue>, &StatValue) {
         (&self.stats, &self.max_health)
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
     }
 }
