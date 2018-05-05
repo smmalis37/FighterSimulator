@@ -37,10 +37,19 @@ fn main() {
         }
     });
 
-    let mut final_results = fighters.iter().zip(results.iter()).collect::<Vec<_>>();
-    final_results.sort_by_key(|&(_, w)| w.0.load(Ordering::SeqCst));
-    for (f, w) in final_results {
-        println!("{:?} {:?}", f, w);
+    let mut final_results = fighters
+        .iter()
+        .zip(
+            results
+                .into_iter()
+                .map(|r| (r.0.into_inner(), r.1.into_inner()))
+                .map(|r| (r.0, r.1, r.0 as f64 / (r.0 + r.1) as f64 * 100f64)),
+        )
+        .collect::<Vec<_>>();
+    final_results.sort_by_key(|&(_, r)| r.0);
+
+    for (f, r) in final_results {
+        println!("{}\t{} wins\t{} losses\t{:.2}%", f.name, r.0, r.1, r.2);
     }
     println!("{:?}", time.elapsed().unwrap());
 }
