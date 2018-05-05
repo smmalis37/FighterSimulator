@@ -78,4 +78,8 @@ impl Fighter {
 
         Ok(())
     }
+
+    pub fn stats(&self) -> (&EnumMap<Stat, StatValue>, &StatValue) {
+        (&self.stats, &self.max_health)
+    }
 }

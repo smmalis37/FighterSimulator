@@ -93,7 +93,7 @@ fn report_handler<T: Write>(report: &FullReport, mut output: T) {
                 "{}/{} survived {} endurance.",
                 atk.second_rolls.len(),
                 atk.first_rolls.len(),
-                atk.defender.stats[Stat::Endurance]
+                atk.defender.stats().0[Stat::Endurance]
             ).unwrap();
             writeln!(output, "Second rolls were {:?}.", atk.second_rolls).unwrap();
             writeln!(
