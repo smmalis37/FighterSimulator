@@ -23,8 +23,8 @@ impl<'a> Fight<'a> {
     pub fn new(f1: &'a Fighter, f2: &'a Fighter) -> Fight<'a> {
         Fight {
             fighters: [f1, f2],
-            current_health: [f1.max_health, f2.max_health],
-            ticks_per_round: f1.stats[Speed] * f2.stats[Speed],
+            current_health: [*f1.max_health(), *f2.max_health()],
+            ticks_per_round: f1.stats()[Speed] * f2.stats()[Speed],
             next_tick: 0,
             current_round: 1,
             rng: weak_rng(),
@@ -59,9 +59,9 @@ impl<'a> Fight<'a> {
         let f0 = self.fighters[0];
         let f1 = self.fighters[1];
 
-        let (first_attacker, second_attacker) = if f0.stats[Speed] == f1.stats[Speed] {
+        let (first_attacker, second_attacker) = if f0.stats()[Speed] == f1.stats()[Speed] {
             *self.rng.choose(&[(0, 1), (1, 0)]).unwrap()
-        } else if f0.stats[Speed] > f1.stats[Speed] {
+        } else if f0.stats()[Speed] > f1.stats()[Speed] {
             (0, 1)
         } else {
             (1, 0)
@@ -93,7 +93,7 @@ impl<'a> Fight<'a> {
         let defender = self.fighters[defender_index];
 
         // The inverting of who attacks based on whose speed is weird but it's right
-        let is_attacking = self.next_tick % defender.stats[Speed] == 0;
+        let is_attacking = self.next_tick % defender.stats()[Speed] == 0;
         if is_attacking {
             let attack = self.generate_attack(attacker, defender);
             if let Some(winner) = self.apply_attack(&attack, defender_index) {
@@ -133,7 +133,7 @@ pub(crate) fn first_rolls<'a, R: Rng>(
     attacker: &'a Fighter,
     rng: &'a RefCell<R>,
 ) -> impl Iterator<Item = StatValue> + 'a {
-    (0..attacker.stats[Stat::Attack]).map(move |_| rng.borrow_mut().gen_range(0, DICE_SIZE) + 1)
+    (0..attacker.stats()[Stat::Attack]).map(move |_| rng.borrow_mut().gen_range(0, DICE_SIZE) + 1)
 }
 
 pub(crate) fn second_rolls<'a, I: Iterator<Item = StatValue> + 'a, R: Rng>(
@@ -142,6 +142,6 @@ pub(crate) fn second_rolls<'a, I: Iterator<Item = StatValue> + 'a, R: Rng>(
     rng: &'a RefCell<R>,
 ) -> impl Iterator<Item = StatValue> + 'a {
     first_rolls
-        .filter(move |roll| *roll > defender.stats[Stat::Endurance])
+        .filter(move |roll| *roll > defender.stats()[Stat::Endurance])
         .map(move |_| rng.borrow_mut().gen_range(0, DICE_SIZE) + 1)
 }
