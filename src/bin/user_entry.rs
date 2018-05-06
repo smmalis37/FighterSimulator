@@ -80,7 +80,7 @@ fn report_handler<T: Write>(report: &FullReport, mut output: T) {
         writeln!(output).unwrap();
     }
 
-    for (attack, remaining_health) in report.attacks.iter().zip(report.remaining_healths.iter()) {
+    for attack in &report.attacks {
         if let Some(ref atk) = *attack {
             writeln!(
                 output,
@@ -102,7 +102,7 @@ fn report_handler<T: Write>(report: &FullReport, mut output: T) {
                 output,
                 "{} now has {} health left.",
                 atk.defender.name(),
-                remaining_health.unwrap()
+                atk.remaining_health
             ).unwrap();
             writeln!(output).unwrap();
         }

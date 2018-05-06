@@ -5,8 +5,6 @@ use report::*;
 use stats::Stat::*;
 use stats::*;
 
-use std::cell::RefCell;
-
 pub(crate) type Round = u32;
 
 #[derive(Debug)]
@@ -74,7 +72,7 @@ impl<'a> Fight<'a> {
         }
 
         self.next_tick += 1;
-        if self.next_tick >= self.ticks_per_round {
+        if self.next_tick == self.ticks_per_round {
             self.next_tick = 0;
             self.current_round += 1;
         }
@@ -87,7 +85,7 @@ impl<'a> Fight<'a> {
         report: &mut R,
         attacker_index: usize,
         defender_index: usize,
-        attack_index: usize,
+        half_tick_index: usize,
     ) {
         let attacker = self.fighters[attacker_index];
         let defender = self.fighters[defender_index];
@@ -95,53 +93,42 @@ impl<'a> Fight<'a> {
         // The inverting of who attacks based on whose speed is weird but it's right
         let is_attacking = self.next_tick % defender.stats()[Speed] == 0;
         if is_attacking {
-            let attack = self.generate_attack(attacker, defender);
-            if let Some(winner) = self.apply_attack(&attack, defender_index) {
-                report.set_winner(winner);
+            report.set_attack(half_tick_index, attacker, defender);
+            let damage =
+                self.compute_damage(report, half_tick_index, attacker_index, defender_index);
+            let new_health = self.current_health[defender_index].saturating_sub(damage);
+            self.current_health[defender_index] = new_health;
+            if new_health == 0 {
+                report.set_winner(attacker);
             }
-            report.set_attack(attack_index, attack, self.current_health[defender_index]);
+            report.finalize_attack(half_tick_index, new_health);
         }
     }
 
-    fn generate_attack<A: AttackReport<'a>>(
+    fn compute_damage<R: Report<'a>>(
         &mut self,
-        attacker: &'a Fighter,
-        defender: &'a Fighter,
-    ) -> A {
-        A::new(attacker, defender, &mut self.rng)
-    }
-
-    fn apply_attack<A: AttackReport<'a>>(
-        &mut self,
-        attack: &A,
+        report: &mut R,
+        half_tick_index: usize,
+        attacker_index: usize,
         defender_index: usize,
-    ) -> Option<&'a Fighter> {
-        self.current_health[defender_index] =
-            self.current_health[defender_index].saturating_sub(attack.get_damage());
+    ) -> StatValue {
+        const DICE_SIZE: StatValue = 6;
+        let attacker = self.fighters[attacker_index];
+        let defender = self.fighters[defender_index];
+        let mut surviving_rolls = 0;
+        let mut damage = 0;
 
-        if self.current_health[defender_index] == 0 {
-            Some(attack.get_attacker())
-        } else {
-            None
+        for roll_index in 0..attacker.stats()[Stat::Attack] {
+            let roll = self.rng.gen_range(0, DICE_SIZE) + 1;
+            report.set_first_roll(half_tick_index, roll_index, roll);
+            if roll > defender.stats()[Stat::Endurance] {
+                let roll = self.rng.gen_range(0, DICE_SIZE) + 1;
+                report.set_second_roll(half_tick_index, surviving_rolls, roll);
+                surviving_rolls += 1;
+                damage += roll;
+            }
         }
+
+        damage
     }
-}
-
-const DICE_SIZE: StatValue = 6;
-
-pub(crate) fn first_rolls<'a, R: Rng>(
-    attacker: &'a Fighter,
-    rng: &'a RefCell<R>,
-) -> impl Iterator<Item = StatValue> + 'a {
-    (0..attacker.stats()[Stat::Attack]).map(move |_| rng.borrow_mut().gen_range(0, DICE_SIZE) + 1)
-}
-
-pub(crate) fn second_rolls<'a, I: Iterator<Item = StatValue> + 'a, R: Rng>(
-    defender: &'a Fighter,
-    first_rolls: I,
-    rng: &'a RefCell<R>,
-) -> impl Iterator<Item = StatValue> + 'a {
-    first_rolls
-        .filter(move |roll| *roll > defender.stats()[Stat::Endurance])
-        .map(move |_| rng.borrow_mut().gen_range(0, DICE_SIZE) + 1)
 }
