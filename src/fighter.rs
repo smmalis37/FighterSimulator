@@ -49,6 +49,7 @@ impl Fighter {
     ) -> Result<(), FighterStatError> {
         let mut total_cost = 0;
         for (stat, &value) in stats.iter() {
+            let value = value as usize;
             if value == 0 && !stat.zero_allowed() {
                 Err(FighterStatError::ZeroStat(stat))?;
             }

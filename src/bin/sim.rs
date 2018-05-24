@@ -68,7 +68,13 @@ fn gen_fighters() -> Vec<Fighter> {
                     let health = (TOTAL_POINTS - stat_costs) * HEALTH_PER_POINT + BASE_HEALTH;
                     let name = format!("a{}s{}e{}h{}", attack, speed, endurance, health);
 
-                    let maybe_fighter = Fighter::new(name, attack, speed, endurance, health);
+                    let maybe_fighter = Fighter::new(
+                        name,
+                        attack as StatValue,
+                        speed as StatValue,
+                        endurance as StatValue,
+                        health,
+                    );
                     if let Ok(fighter) = maybe_fighter {
                         fighters.push(fighter);
                     }

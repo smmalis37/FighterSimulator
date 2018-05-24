@@ -1,4 +1,4 @@
-pub type StatValue = usize;
+pub type StatValue = u32;
 
 #[derive(Debug, EnumMap, Copy, Clone)]
 pub enum Stat {

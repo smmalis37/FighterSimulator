@@ -67,7 +67,7 @@ impl<'a> Report<'a> for FullReport<'a> {
             first_rolls: ArrayVec::new(),
             second_rolls: ArrayVec::new(),
             damage: 0,
-            remaining_health: 987654321,
+            remaining_health: StatValue::max_value(),
         });
     }
 

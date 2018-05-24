@@ -1,4 +1,5 @@
-use rand::*;
+use rand::distributions::Uniform;
+use rand::prelude::*;
 
 use fighter::*;
 use report::*;
@@ -14,7 +15,7 @@ pub struct Fight<'a> {
     ticks_per_round: StatValue,
     next_tick: StatValue,
     current_round: Round,
-    rng: XorShiftRng,
+    rng: SmallRng,
 }
 
 impl<'a> Fight<'a> {
@@ -25,7 +26,7 @@ impl<'a> Fight<'a> {
             ticks_per_round: f1.stats()[Speed] * f2.stats()[Speed],
             next_tick: 0,
             current_round: 1,
-            rng: weak_rng(),
+            rng: SmallRng::from_rng(&mut thread_rng()).unwrap(),
         }
     }
 
@@ -58,7 +59,11 @@ impl<'a> Fight<'a> {
         let f1 = self.fighters[1];
 
         let (first_attacker, second_attacker) = if f0.stats()[Speed] == f1.stats()[Speed] {
-            *self.rng.choose(&[(0, 1), (1, 0)]).unwrap()
+            if self.rng.gen() {
+                (0, 1)
+            } else {
+                (1, 0)
+            }
         } else if f0.stats()[Speed] > f1.stats()[Speed] {
             (0, 1)
         } else {
@@ -113,16 +118,17 @@ impl<'a> Fight<'a> {
         defender_index: usize,
     ) -> StatValue {
         const DICE_SIZE: StatValue = 6;
+        let dice_range = Uniform::new_inclusive(1, DICE_SIZE);
         let attacker = self.fighters[attacker_index];
         let defender = self.fighters[defender_index];
         let mut surviving_rolls = 0;
         let mut damage = 0;
 
         for roll_index in 0..attacker.stats()[Stat::Attack] {
-            let roll = self.rng.gen_range(0, DICE_SIZE) + 1;
-            report.set_first_roll(half_tick_index, roll_index, roll);
+            let roll = self.rng.sample(dice_range);
+            report.set_first_roll(half_tick_index, roll_index as usize, roll);
             if roll > defender.stats()[Stat::Endurance] {
-                let roll = self.rng.gen_range(0, DICE_SIZE) + 1;
+                let roll = self.rng.sample(dice_range);
                 report.set_second_roll(half_tick_index, surviving_rolls, roll);
                 surviving_rolls += 1;
                 damage += roll;
