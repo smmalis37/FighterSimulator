@@ -25,7 +25,9 @@ fn main() {
         for (i2, f2) in (i1 + 1..fighters.len()).map(|i2| (i2, &fighters[i2])) {
             for _ in 0..FIGHT_COUNT {
                 let fight = Fight::new(f1, f2);
-                let winner = fight.run();
+                let mut report = WinnerLogger { winner: None };
+                fight.run(&mut report);
+                let winner = report.winner.unwrap();
 
                 if winner as *const _ == f1 as *const _ {
                     results[i1].fetch_add(1, Ordering::Relaxed);
@@ -62,7 +64,8 @@ fn gen_fighters() -> Vec<Fighter> {
     for attack in 0..Stat::Attack.costs().len() {
         for speed in 0..Stat::Speed.costs().len() {
             for endurance in 0..Stat::Endurance.costs().len() {
-                let stat_costs = Stat::Attack.costs()[attack] + Stat::Speed.costs()[speed]
+                let stat_costs = Stat::Attack.costs()[attack]
+                    + Stat::Speed.costs()[speed]
                     + Stat::Endurance.costs()[endurance];
                 if stat_costs <= TOTAL_POINTS {
                     let health = (TOTAL_POINTS - stat_costs) * HEALTH_PER_POINT + BASE_HEALTH;
@@ -84,4 +87,19 @@ fn gen_fighters() -> Vec<Fighter> {
     }
 
     fighters
+}
+
+struct WinnerLogger<'a> {
+    winner: Option<&'a Fighter>,
+}
+
+impl<'a> Report<'a> for WinnerLogger<'a> {
+    fn new_round(&mut self, _: u32) {}
+    fn attack(&mut self, _: &'a Fighter, _: &'a Fighter) {}
+    fn first_roll(&mut self, _: StatValue) {}
+    fn second_roll(&mut self, _: StatValue) {}
+    fn finalize_attack(&mut self, _: StatValue, _: StatValue) {}
+    fn winner(&mut self, winner: &'a Fighter) {
+        self.winner = Some(winner);
+    }
 }

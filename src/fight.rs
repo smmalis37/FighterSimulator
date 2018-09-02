@@ -30,29 +30,13 @@ impl<'a> Fight<'a> {
         }
     }
 
-    pub fn run_with_reporting<F: Fn(&FullReport)>(mut self, report_handler: F) -> &'a Fighter {
-        loop {
-            let report = self.run_tick();
-            report_handler(&report);
-            if let Some(winner) = report.winner {
-                break winner;
-            }
-        }
+    pub fn run<R: Report<'a>>(mut self, reporter: &mut R) {
+        while !self.run_tick(reporter) {}
     }
 
-    pub fn run(mut self) -> &'a Fighter {
-        loop {
-            let report = self.run_tick::<WinnerOnlyReport>();
-            if let Some(winner) = report.winner {
-                break winner;
-            }
-        }
-    }
-
-    fn run_tick<R: Report<'a>>(&mut self) -> R {
-        let mut report = R::new();
+    fn run_tick<R: Report<'a>>(&mut self, reporter: &mut R) -> bool {
         if self.next_tick == 0 {
-            report.set_new_round(self.current_round);
+            reporter.new_round(self.current_round);
         }
 
         let f0 = self.fighters[0];
@@ -70,10 +54,10 @@ impl<'a> Fight<'a> {
             (1, 0)
         };
 
-        self.run_half_tick(&mut report, first_attacker, second_attacker, 0);
+        let mut over = self.run_half_tick(reporter, first_attacker, second_attacker);
 
-        if report.get_winner().is_none() {
-            self.run_half_tick(&mut report, second_attacker, first_attacker, 1);
+        if !over {
+            over = self.run_half_tick(reporter, second_attacker, first_attacker);
         }
 
         self.next_tick += 1;
@@ -82,55 +66,54 @@ impl<'a> Fight<'a> {
             self.current_round += 1;
         }
 
-        report
+        over
     }
 
     fn run_half_tick<R: Report<'a>>(
         &mut self,
-        report: &mut R,
+        reporter: &mut R,
         attacker_index: usize,
         defender_index: usize,
-        half_tick_index: usize,
-    ) {
+    ) -> bool {
         let attacker = self.fighters[attacker_index];
         let defender = self.fighters[defender_index];
+        let mut over = false;
 
         // The inverting of who attacks based on whose speed is weird but it's right
         let is_attacking = self.next_tick % defender.stats()[Speed] == 0;
         if is_attacking {
-            report.set_attack(half_tick_index, attacker, defender);
-            let damage =
-                self.compute_damage(report, half_tick_index, attacker_index, defender_index);
+            reporter.attack(attacker, defender);
+            let damage = self.compute_damage(reporter, attacker_index, defender_index);
             let new_health = self.current_health[defender_index].saturating_sub(damage);
             self.current_health[defender_index] = new_health;
             if new_health == 0 {
-                report.set_winner(attacker);
+                reporter.winner(attacker);
+                over = true;
             }
-            report.finalize_attack(half_tick_index, new_health);
+            reporter.finalize_attack(damage, new_health);
         }
+
+        over
     }
 
     fn compute_damage<R: Report<'a>>(
         &mut self,
-        report: &mut R,
-        half_tick_index: usize,
+        reporter: &mut R,
         attacker_index: usize,
         defender_index: usize,
     ) -> StatValue {
-        const DICE_SIZE: StatValue = 6;
         let dice_range = Uniform::new_inclusive(1, DICE_SIZE);
         let attacker = self.fighters[attacker_index];
         let defender = self.fighters[defender_index];
-        let mut surviving_rolls = 0;
         let mut damage = 0;
 
-        for roll_index in 0..attacker.stats()[Stat::Attack] {
+        for _ in 0..attacker.stats()[Stat::Attack] {
             let roll = self.rng.sample(dice_range);
-            report.set_first_roll(half_tick_index, roll_index as usize, roll);
+            reporter.first_roll(roll);
+
             if roll > defender.stats()[Stat::Endurance] {
                 let roll = self.rng.sample(dice_range);
-                report.set_second_roll(half_tick_index, surviving_rolls, roll);
-                surviving_rolls += 1;
+                reporter.second_roll(roll);
                 damage += roll;
             }
         }

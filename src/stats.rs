@@ -1,6 +1,8 @@
 pub type StatValue = u32;
 
-#[derive(Debug, EnumMap, Copy, Clone)]
+pub const DICE_SIZE: StatValue = 6;
+
+#[derive(Debug, Enum, Copy, Clone)]
 pub enum Stat {
     Attack,
     Speed,
@@ -11,7 +13,7 @@ impl Stat {
     pub fn costs(&self) -> &'static [StatValue] {
         match *self {
             Stat::Attack => &[
-                0, 5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 450,
+                0, 5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150,
                 160, 180,
             ],
             Stat::Speed => &[0, 10, 20, 35, 50, 70, 90, 110, 135, 160, 190],
