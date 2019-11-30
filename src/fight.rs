@@ -1,12 +1,12 @@
 use rand::distributions::Uniform;
 use rand::prelude::*;
 
-use fighter::*;
-use report::*;
-use stats::Stat::*;
-use stats::*;
+use crate::fighter::*;
+use crate::observer::*;
+use crate::stats::Stat::*;
+use crate::stats::*;
 
-pub(crate) type Round = u32;
+pub(crate) type Round = u16;
 
 #[derive(Debug)]
 pub struct Fight<'a> {
@@ -30,13 +30,13 @@ impl<'a> Fight<'a> {
         }
     }
 
-    pub fn run<R: Report<'a>>(mut self, reporter: &mut R) {
-        while !self.run_tick(reporter) {}
+    pub fn run<O: FightObserver<'a>>(mut self, observer: &mut O) {
+        while !self.run_tick(observer) {}
     }
 
-    fn run_tick<R: Report<'a>>(&mut self, reporter: &mut R) -> bool {
+    fn run_tick<O: FightObserver<'a>>(&mut self, observer: &mut O) -> bool {
         if self.next_tick == 0 {
-            reporter.new_round(self.current_round);
+            observer.new_round(self.current_round);
         }
 
         let f0 = self.fighters[0];
@@ -54,10 +54,10 @@ impl<'a> Fight<'a> {
             (1, 0)
         };
 
-        let mut over = self.run_half_tick(reporter, first_attacker, second_attacker);
+        let mut over = self.run_half_tick(observer, first_attacker, second_attacker);
 
         if !over {
-            over = self.run_half_tick(reporter, second_attacker, first_attacker);
+            over = self.run_half_tick(observer, second_attacker, first_attacker);
         }
 
         self.next_tick += 1;
@@ -69,9 +69,9 @@ impl<'a> Fight<'a> {
         over
     }
 
-    fn run_half_tick<R: Report<'a>>(
+    fn run_half_tick<O: FightObserver<'a>>(
         &mut self,
-        reporter: &mut R,
+        observer: &mut O,
         attacker_index: usize,
         defender_index: usize,
     ) -> bool {
@@ -82,23 +82,24 @@ impl<'a> Fight<'a> {
         // The inverting of who attacks based on whose speed is weird but it's right
         let is_attacking = self.next_tick % defender.stats()[Speed] == 0;
         if is_attacking {
-            reporter.attack(attacker, defender);
-            let damage = self.compute_damage(reporter, attacker_index, defender_index);
+            observer.attack_starting(attacker, defender);
+            let damage = self.compute_damage(observer, attacker_index, defender_index);
             let new_health = self.current_health[defender_index].saturating_sub(damage);
             self.current_health[defender_index] = new_health;
+            observer.finalize_attack(damage, new_health);
+
             if new_health == 0 {
-                reporter.winner(attacker);
+                observer.winner(attacker);
                 over = true;
             }
-            reporter.finalize_attack(damage, new_health);
         }
 
         over
     }
 
-    fn compute_damage<R: Report<'a>>(
+    fn compute_damage<O: FightObserver<'a>>(
         &mut self,
-        reporter: &mut R,
+        observer: &mut O,
         attacker_index: usize,
         defender_index: usize,
     ) -> StatValue {
@@ -109,11 +110,12 @@ impl<'a> Fight<'a> {
 
         for _ in 0..attacker.stats()[Stat::Attack] {
             let roll = self.rng.sample(dice_range);
-            reporter.first_roll(roll);
+            let roll_success = roll > defender.stats()[Stat::Endurance];
+            observer.first_roll(roll, roll_success);
 
-            if roll > defender.stats()[Stat::Endurance] {
+            if roll_success {
                 let roll = self.rng.sample(dice_range);
-                reporter.second_roll(roll);
+                observer.second_roll(roll);
                 damage += roll;
             }
         }

@@ -1,4 +1,4 @@
-pub type StatValue = u32;
+pub type StatValue = usize;
 
 pub const DICE_SIZE: StatValue = 6;
 
@@ -10,7 +10,7 @@ pub enum Stat {
 }
 
 impl Stat {
-    pub fn costs(&self) -> &'static [StatValue] {
+    pub fn costs(self) -> &'static [StatValue] {
         match self {
             Stat::Attack => &[
                 0, 5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150,
@@ -21,7 +21,7 @@ impl Stat {
         }
     }
 
-    pub fn zero_allowed(&self) -> bool {
+    pub fn zero_allowed(self) -> bool {
         match self {
             Stat::Attack => false,
             Stat::Speed => false,

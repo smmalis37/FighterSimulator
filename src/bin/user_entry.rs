@@ -17,10 +17,7 @@ pub fn main() {
     let filename = format!("{}Vs{}.txt", f1.name(), f2.name());
     let file = File::create(filename).expect("Unable to create log file.");
 
-    Fight::new(&f1, &f2).run_with_reporting(|r| {
-        report_handler(r, stdout());
-        report_handler(r, &file);
-    });
+    Fight::new(&f1, &f2).run(&mut Observer { log_file: file });
 }
 
 fn get_fighter() -> Fighter {
@@ -74,41 +71,41 @@ fn get_value<T: FromStr>(prompt: &str) -> T {
     }
 }
 
-fn report_handler<T: Write>(report: &FullReport, mut output: T) {
-    if let Some(new_round) = report.new_round {
-        writeln!(output, "Start of round {}.", new_round).unwrap();
-        writeln!(output).unwrap();
-    }
+struct Observer {
+    log_file: File,
+}
 
-    for attack in &report.attacks {
-        if let Some(ref atk) = *attack {
-            writeln!(
-                output,
-                "{} attacked {} for {} damage.",
-                atk.attacker.name(),
-                atk.defender.name(),
-                atk.damage
-            ).unwrap();
-            writeln!(output, "First rolls were {:?}.", atk.first_rolls).unwrap();
-            writeln!(
-                output,
-                "{}/{} survived {} endurance.",
-                atk.second_rolls.len(),
-                atk.first_rolls.len(),
-                atk.defender.stats()[Stat::Endurance]
-            ).unwrap();
-            writeln!(output, "Second rolls were {:?}.", atk.second_rolls).unwrap();
-            writeln!(
-                output,
-                "{} now has {} health left.",
-                atk.defender.name(),
-                atk.remaining_health
-            ).unwrap();
-            writeln!(output).unwrap();
-        }
+impl Observer {
+    fn output<'a>(&mut self, text: &'a str) {
+        writeln!(self.log_file, "{}", text).expect("Failed to write to log file.");
+        println!("{}", text);
     }
+}
 
-    if let Some(ref winner) = report.winner {
-        writeln!(output, "{} wins!", winner.name()).unwrap();
+impl<'a> FightObserver<'a> for Observer {
+    fn new_round(&mut self, new_round: u16) {
+        self.output(&format!("Start of round {}.", new_round));
+    }
+    fn attack_starting(&mut self, attacker: &'a Fighter, defender: &'a Fighter) {
+        self.output(&format!("{} attacks {}.", attacker.name(), defender.name()));
+    }
+    fn first_roll(&mut self, roll: StatValue, success: bool) {
+        self.output(&format!(
+            "Fisrt roll of {} is {}good enough.",
+            roll,
+            if success { "" } else { "not " }
+        ));
+    }
+    fn second_roll(&mut self, roll: StatValue) {
+        self.output(&format!("Second roll is {}.", roll));
+    }
+    fn finalize_attack(&mut self, damage: StatValue, remaining_health: StatValue) {
+        self.output(&format!(
+            "Dealt {} damage. {} health remaining.",
+            damage, remaining_health
+        ));
+    }
+    fn winner(&mut self, winner: &'a Fighter) {
+        self.output(&format!("{} wins!", winner.name()));
     }
 }

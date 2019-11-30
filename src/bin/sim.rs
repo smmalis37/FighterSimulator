@@ -1,6 +1,3 @@
-extern crate fighter_simulator;
-extern crate rayon;
-
 use fighter_simulator::*;
 use rayon::prelude::*;
 
@@ -93,10 +90,10 @@ struct WinnerLogger<'a> {
     winner: Option<&'a Fighter>,
 }
 
-impl<'a> Report<'a> for WinnerLogger<'a> {
-    fn new_round(&mut self, _: u32) {}
-    fn attack(&mut self, _: &'a Fighter, _: &'a Fighter) {}
-    fn first_roll(&mut self, _: StatValue) {}
+impl<'a> FightObserver<'a> for WinnerLogger<'a> {
+    fn new_round(&mut self, _: u16) {}
+    fn attack_starting(&mut self, _: &'a Fighter, _: &'a Fighter) {}
+    fn first_roll(&mut self, _: StatValue, _: bool) {}
     fn second_roll(&mut self, _: StatValue) {}
     fn finalize_attack(&mut self, _: StatValue, _: StatValue) {}
     fn winner(&mut self, winner: &'a Fighter) {

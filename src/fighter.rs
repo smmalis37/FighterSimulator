@@ -1,4 +1,4 @@
-use stats::*;
+use crate::stats::*;
 
 use enum_map::EnumMap;
 
@@ -48,6 +48,7 @@ impl Fighter {
         max_health: StatValue,
     ) -> Result<(), FighterStatError> {
         let mut total_cost = 0;
+
         for (stat, &value) in stats.iter() {
             let value = value as usize;
             if value == 0 && !stat.zero_allowed() {
