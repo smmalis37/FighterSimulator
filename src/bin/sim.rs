@@ -41,6 +41,8 @@ fn main() {
         .collect::<Vec<_>>();
     final_results.sort_by_key(|&(_, w)| w);
 
+    let final_time = time.elapsed().unwrap();
+
     for (f, w) in final_results {
         let loss_count = ((fighters.len() - 1) * FIGHT_COUNT) - w;
         let win_rate = w as f64 / (w + loss_count) as f64 * 100f64;
@@ -52,7 +54,7 @@ fn main() {
             win_rate
         );
     }
-    println!("{:?}", time.elapsed().unwrap());
+    println!("{:?}", final_time);
 }
 
 fn gen_fighters() -> Vec<Fighter> {
@@ -91,7 +93,7 @@ struct WinnerLogger<'a> {
 }
 
 impl<'a> FightObserver<'a> for WinnerLogger<'a> {
-    fn new_round(&mut self, _: u16) {}
+    fn new_round(&mut self, _: Round) {}
     fn attack_starting(&mut self, _: &'a Fighter, _: &'a Fighter) {}
     fn first_roll(&mut self, _: StatValue, _: bool) {}
     fn second_roll(&mut self, _: StatValue) {}

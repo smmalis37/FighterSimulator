@@ -83,7 +83,7 @@ impl Observer {
 }
 
 impl<'a> FightObserver<'a> for Observer {
-    fn new_round(&mut self, new_round: u16) {
+    fn new_round(&mut self, new_round: Round) {
         self.output(&format!("Start of round {}.", new_round));
     }
     fn attack_starting(&mut self, attacker: &'a Fighter, defender: &'a Fighter) {

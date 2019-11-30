@@ -6,7 +6,7 @@ use crate::observer::*;
 use crate::stats::Stat::*;
 use crate::stats::*;
 
-pub(crate) type Round = u16;
+pub type Round = u32;
 
 #[derive(Debug)]
 pub struct Fight<'a> {

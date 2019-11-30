@@ -1,4 +1,4 @@
-pub type StatValue = usize;
+pub type StatValue = u16;
 
 pub const DICE_SIZE: StatValue = 6;
 
