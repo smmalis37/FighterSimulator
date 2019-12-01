@@ -5,12 +5,9 @@ authors = ["Steven Malis <smmalis37@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+rand = { version = "0.7.2", features = ["small_rng"] }
 enum-map = "0.6.1"
 rayon = "1.2.1"
-
-[dependencies.rand]
-version = "0.7.2"
-features = ["small_rng"]
 
 [profile.release]
 lto = "thin"
