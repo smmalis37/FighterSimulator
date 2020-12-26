@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use arrayvec::ArrayVec;
 use rand::distributions::Uniform;
 use rand::prelude::*;
@@ -35,7 +37,6 @@ impl<'a> Fight<'a> {
         while self.run_tick(observer) {}
     }
 
-    #[allow(clippy::comparison_chain)]
     fn run_tick<O: FightObserver<'a>>(&mut self, observer: &mut O) -> bool {
         self.run_half_tick(observer, 0, 1);
         self.run_half_tick(observer, 1, 0);
@@ -44,12 +45,10 @@ impl<'a> Fight<'a> {
         let f1_health = self.current_health[1];
 
         if f0_health <= 0 || f1_health <= 0 {
-            observer.winner(if f0_health < f1_health {
-                Some(self.fighters[1])
-            } else if f1_health < f0_health {
-                Some(self.fighters[0])
-            } else {
-                None
+            observer.winner(match f0_health.cmp(&f1_health) {
+                Ordering::Less => Some(self.fighters[1]),
+                Ordering::Equal => None,
+                Ordering::Greater => Some(self.fighters[0]),
             });
             false
         } else {
