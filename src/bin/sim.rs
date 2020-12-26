@@ -4,14 +4,18 @@ use rayon::prelude::*;
 use std::sync::atomic::*;
 
 fn main() {
-    const FIGHT_COUNT: usize = 1000;
+    const FIGHT_COUNT: usize = 10000;
 
     let time = std::time::SystemTime::now();
     let fighters = gen_fighters();
     let results = {
         let mut v = Vec::with_capacity(fighters.len());
         for _ in 0..fighters.len() {
-            v.push(AtomicUsize::new(0));
+            v.push((
+                AtomicUsize::new(0),
+                AtomicUsize::new(0),
+                AtomicUsize::new(0),
+            ));
         }
         v
     };
@@ -27,11 +31,15 @@ fn main() {
 
                 if let Some(winner) = report.winner {
                     if winner as *const _ == f1 as *const _ {
-                        results[i1].fetch_add(1, Ordering::Relaxed);
+                        results[i1].0.fetch_add(1, Ordering::Relaxed);
+                        results[i2].2.fetch_add(1, Ordering::Relaxed);
                     } else {
-                        results[i2].fetch_add(1, Ordering::Relaxed);
+                        results[i2].0.fetch_add(1, Ordering::Relaxed);
+                        results[i1].2.fetch_add(1, Ordering::Relaxed);
                     }
                 } else {
+                    results[i1].1.fetch_add(1, Ordering::Relaxed);
+                    results[i2].1.fetch_add(1, Ordering::Relaxed);
                 }
             }
         }
@@ -40,20 +48,25 @@ fn main() {
     let fight_count = (fighters.len() - 1) * FIGHT_COUNT;
     let mut final_results = fighters
         .iter()
-        .zip(results.into_iter().map(|w| w.into_inner()))
+        .zip(
+            results
+                .into_iter()
+                .map(|(w, t, l)| (w.into_inner(), t.into_inner(), l.into_inner())),
+        )
         .collect::<Vec<_>>();
-    final_results.sort_by_key(|&(_, w)| w);
+    final_results.sort_by_key(|&(_, (w, _, _))| w);
 
     let final_time = time.elapsed().unwrap();
 
-    for (f, w) in final_results {
-        let loss_count = fight_count - w;
+    for (f, (w, t, l)) in final_results {
+        assert!(w + t + l == fight_count);
         let win_rate = (w as f64) / (fight_count as f64) * 100.0;
         println!(
-            "{}\t{} wins\t{} losses\t{:.2}%",
+            "{}\t{} wins\t{} ties\t{} losses\t{:.2}%",
             f.name(),
             w,
-            loss_count,
+            t,
+            l,
             win_rate
         );
     }
