@@ -2,8 +2,8 @@ extern crate fighter_simulator;
 
 use fighter_simulator::*;
 
-use std::fs::*;
-use std::io::*;
+use std::fs::File;
+use std::io::{stdin, Write};
 use std::str::FromStr;
 
 pub fn main() {
