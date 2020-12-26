@@ -5,9 +5,10 @@ authors = ["Steven Malis <smmalis37@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-rand = { version = "0.7.2", features = ["small_rng"] }
+rand = { version = "0.8.0", features = ["small_rng"] }
 enum-map = "0.6.1"
-rayon = "1.2.1"
+rayon = "1.5.0"
+arrayvec = "0.5.2"
 
 [profile.release]
 lto = "thin"

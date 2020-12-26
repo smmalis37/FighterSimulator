@@ -23,33 +23,22 @@ pub fn main() {
 fn get_fighter() -> Fighter {
     loop {
         let name = get_value("Enter the fighter's name:");
-        let attack = get_value("Enter the fighter's attack:");
-        let speed = get_value("Enter the fighter's speed:");
-        let endurance = get_value("Enter the fighter's endurance:");
-        let max_health = get_value("Enter the fighter's max health:");
+        let health = get_value("Enter the points spent on the fighter's health:");
+        let skill = get_value("Enter the points spent on the fighter's skill:");
+        let speed = get_value("Enter the points spent on the fighter's speed:");
+        let strength = get_value("Enter the points spent on the fighter's strength:");
+        let resist = get_value("Enter the points spent on the fighter's resist:");
 
-        match Fighter::new(name, attack, speed, endurance, max_health) {
+        match Fighter::new(name, health, skill, speed, strength, resist) {
             Ok(fighter) => break fighter,
             Err(e) => match e {
                 FighterStatError::IncorrectPointTotal(total) => println!(
                     "That build uses {} points. You must use exactly {} points.",
                     total, TOTAL_POINTS
                 ),
-                FighterStatError::ZeroStat(stat) => {
-                    println!("{:?} values of zero are not allowed.", stat)
-                }
                 FighterStatError::StatAboveMax(stat) => println!(
                     "{:?} values above {} are not allowed.",
-                    stat,
-                    stat.costs().len() - 1
-                ),
-                FighterStatError::HealthBelowBase => println!(
-                    "{} is below the base health value of {}.",
-                    max_health, BASE_HEALTH
-                ),
-                FighterStatError::HealthNotCleanlyDivisible => println!(
-                    "{} is not cleanly divisible by the health per points value of {}.",
-                    max_health, HEALTH_PER_POINT
+                    stat, MAX_STAT_POINTS
                 ),
             },
         }
@@ -76,36 +65,40 @@ struct Observer {
 }
 
 impl Observer {
-    fn output<'a>(&mut self, text: &'a str) {
+    fn output(&mut self, text: &str) {
         writeln!(self.log_file, "{}", text).expect("Failed to write to log file.");
         println!("{}", text);
     }
 }
 
 impl<'a> FightObserver<'a> for Observer {
-    fn new_round(&mut self, new_round: Round) {
-        self.output(&format!("Start of round {}.", new_round));
-    }
     fn attack_starting(&mut self, attacker: &'a Fighter, defender: &'a Fighter) {
         self.output(&format!("{} attacks {}.", attacker.name(), defender.name()));
     }
-    fn first_roll(&mut self, roll: StatValue, success: bool) {
+
+    fn rolls(&mut self, rolls: &[StatValue]) {
+        self.output(&format!("They roll:\n{:?}.", rolls));
+    }
+
+    fn adjusts(&mut self, rolls: &[StatValue]) {
         self.output(&format!(
-            "Fisrt roll of {} is {}good enough.",
-            roll,
-            if success { "" } else { "not " }
+            "After strength and resist adjustments, the rolls are:\n{:?}.",
+            rolls
         ));
     }
-    fn second_roll(&mut self, roll: StatValue) {
-        self.output(&format!("Second roll is {}.", roll));
-    }
-    fn finalize_attack(&mut self, damage: StatValue, remaining_health: StatValue) {
+
+    fn finalize_attack(&mut self, damage: StatValue, remaining_health: SignedStatValue) {
         self.output(&format!(
             "Dealt {} damage. {} health remaining.",
             damage, remaining_health
         ));
     }
-    fn winner(&mut self, winner: &'a Fighter) {
-        self.output(&format!("{} wins!", winner.name()));
+
+    fn winner(&mut self, winner: Option<&'a Fighter>) {
+        if let Some(w) = winner {
+            self.output(&format!("{} wins!", w.name()));
+        } else {
+            self.output("Nobody wins!");
+        }
     }
 }

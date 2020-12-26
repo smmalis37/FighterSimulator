@@ -4,7 +4,7 @@ use rayon::prelude::*;
 use std::sync::atomic::*;
 
 fn main() {
-    const FIGHT_COUNT: usize = 100;
+    const FIGHT_COUNT: usize = 1000;
 
     let time = std::time::SystemTime::now();
     let fighters = gen_fighters();
@@ -24,17 +24,20 @@ fn main() {
                 let fight = Fight::new(f1, f2);
                 let mut report = WinnerLogger { winner: None };
                 fight.run(&mut report);
-                let winner = report.winner.unwrap();
 
-                if winner as *const _ == f1 as *const _ {
-                    results[i1].fetch_add(1, Ordering::Relaxed);
+                if let Some(winner) = report.winner {
+                    if winner as *const _ == f1 as *const _ {
+                        results[i1].fetch_add(1, Ordering::Relaxed);
+                    } else {
+                        results[i2].fetch_add(1, Ordering::Relaxed);
+                    }
                 } else {
-                    results[i2].fetch_add(1, Ordering::Relaxed);
                 }
             }
         }
     });
 
+    let fight_count = (fighters.len() - 1) * FIGHT_COUNT;
     let mut final_results = fighters
         .iter()
         .zip(results.into_iter().map(|w| w.into_inner()))
@@ -44,8 +47,8 @@ fn main() {
     let final_time = time.elapsed().unwrap();
 
     for (f, w) in final_results {
-        let loss_count = ((fighters.len() - 1) * FIGHT_COUNT) - w;
-        let win_rate = w as f64 / (w + loss_count) as f64 * 100f64;
+        let loss_count = fight_count - w;
+        let win_rate = (w as f64) / (fight_count as f64) * 100.0;
         println!(
             "{}\t{} wins\t{} losses\t{:.2}%",
             f.name(),
@@ -54,31 +57,28 @@ fn main() {
             win_rate
         );
     }
+
     println!("{:?}", final_time);
 }
 
 fn gen_fighters() -> Vec<Fighter> {
     let mut fighters = Vec::new();
 
-    for attack in 0..Stat::Attack.costs().len() {
-        for speed in 0..Stat::Speed.costs().len() {
-            for endurance in 0..Stat::Endurance.costs().len() {
-                let stat_costs = Stat::Attack.costs()[attack]
-                    + Stat::Speed.costs()[speed]
-                    + Stat::Endurance.costs()[endurance];
-                if stat_costs <= TOTAL_POINTS {
-                    let health = (TOTAL_POINTS - stat_costs) * HEALTH_PER_POINT + BASE_HEALTH;
-                    let name = format!("a{}s{}e{}h{}", attack, speed, endurance, health);
+    for health in 0..MAX_STAT_POINTS {
+        for skill in 0..MAX_STAT_POINTS {
+            for speed in 0..MAX_STAT_POINTS {
+                for strength in 0..MAX_STAT_POINTS {
+                    for resist in 0..MAX_STAT_POINTS {
+                        let name = format!(
+                            "h{} sk{} sp{} st{} r{}",
+                            health, skill, speed, strength, resist
+                        );
 
-                    let maybe_fighter = Fighter::new(
-                        name,
-                        attack as StatValue,
-                        speed as StatValue,
-                        endurance as StatValue,
-                        health,
-                    );
-                    if let Ok(fighter) = maybe_fighter {
-                        fighters.push(fighter);
+                        if let Ok(fighter) =
+                            Fighter::new(name, health, skill, speed, strength, resist)
+                        {
+                            fighters.push(fighter);
+                        }
                     }
                 }
             }
@@ -93,12 +93,11 @@ struct WinnerLogger<'a> {
 }
 
 impl<'a> FightObserver<'a> for WinnerLogger<'a> {
-    fn new_round(&mut self, _: Round) {}
     fn attack_starting(&mut self, _: &'a Fighter, _: &'a Fighter) {}
-    fn first_roll(&mut self, _: StatValue, _: bool) {}
-    fn second_roll(&mut self, _: StatValue) {}
-    fn finalize_attack(&mut self, _: StatValue, _: StatValue) {}
-    fn winner(&mut self, winner: &'a Fighter) {
-        self.winner = Some(winner);
+    fn rolls(&mut self, _: &[StatValue]) {}
+    fn adjusts(&mut self, _: &[StatValue]) {}
+    fn finalize_attack(&mut self, _: StatValue, _: SignedStatValue) {}
+    fn winner(&mut self, winner: Option<&'a Fighter>) {
+        self.winner = winner;
     }
 }
