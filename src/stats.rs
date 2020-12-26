@@ -34,17 +34,21 @@ impl StatMap {
 
     pub(crate) fn value(&self, stat: Stat) -> StatValue {
         let x = self.0[stat];
-        match stat {
-            Stat::Health => (x + 1) * 20,
-            Stat::Skill => x * 2 + 4,
-            Stat::Speed => x + 1,
-            Stat::Strength => x,
-            Stat::Resist => x,
-        }
+        stat_value(stat, x)
     }
 
     pub(crate) fn iter(&self) -> impl Iterator<Item = (Stat, &StatValue)> {
         self.0.iter()
+    }
+}
+
+pub(crate) const fn stat_value(stat: Stat, x: StatValue) -> StatValue {
+    match stat {
+        Stat::Health => (x + 1) * 20,
+        Stat::Skill => x * 2 + 4,
+        Stat::Speed => x + 1,
+        Stat::Strength => x,
+        Stat::Resist => x,
     }
 }
 

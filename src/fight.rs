@@ -69,7 +69,7 @@ impl<'a> Fight<'a> {
 
         observer.attack_starting(attacker, defender);
 
-        let mut rolls = ArrayVec::<[_; MAX_STAT_POINTS as usize + 1]>::new(); // TODO make better
+        let mut rolls = ArrayVec::<[_; stat_value(Speed, MAX_STAT_POINTS) as usize]>::new();
         for _ in 0..attacker.stat(Speed) {
             rolls.push(self.rng.sample(dice_size));
         }
