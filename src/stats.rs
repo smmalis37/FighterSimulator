@@ -43,14 +43,15 @@ impl StatMap {
 }
 
 pub(crate) const fn stat_value(stat: Stat, x: StatValue) -> StatValue {
-    match stat {
-        Stat::Health => (x + 1) * 20,
-        Stat::Skill => x * 2 + 4,
-        Stat::Speed => x + 1,
-        Stat::Strength => x,
-        Stat::Resist => x,
-    }
+    let x = x as usize;
+    (match stat {
+        Stat::Health => [15, 30, 45, 60, 75, 90],
+        Stat::Skill => [6, 8, 10, 12, 14, 20],
+        Stat::Speed => [1, 1, 2, 3, 4, 5],
+        Stat::Strength => [0, 1, 2, 3, 4, 5],
+        Stat::Resist => [0, 1, 2, 3, 4, 5],
+    })[x]
 }
 
-pub const TOTAL_POINTS: StatValue = 10;
-pub const MAX_STAT_POINTS: StatValue = 4;
+pub const TOTAL_POINTS: StatValue = 7;
+pub const MAX_STAT_POINTS: StatValue = 5;
