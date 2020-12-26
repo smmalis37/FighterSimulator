@@ -58,17 +58,11 @@ fn main() {
 
     let final_time = Instant::now() - time;
 
+    println!("health,skill,speed,strength,resist,wins,ties,losses");
     for (f, (w, t, l)) in final_results {
         assert!(w + t + l == fight_count);
-        let win_rate = (w as f64) / (fight_count as f64) * 100.0;
-        println!(
-            "{}\t{} wins\t{} ties\t{} losses\t{:.2}%",
-            f.name(),
-            w,
-            t,
-            l,
-            win_rate
-        );
+        //let win_rate = (w as f64) / (fight_count as f64) * 100.0;
+        println!("{},{},{},{}", f.name(), w, t, l);
     }
 
     println!("{:?}", final_time);
@@ -82,10 +76,8 @@ fn gen_fighters() -> Vec<Fighter> {
             for speed in 0..MAX_STAT_POINTS {
                 for strength in 0..MAX_STAT_POINTS {
                     for resist in 0..MAX_STAT_POINTS {
-                        let name = format!(
-                            "h{} sk{} sp{} st{} r{}",
-                            health, skill, speed, strength, resist
-                        );
+                        let name =
+                            format!("{},{},{},{},{}", health, skill, speed, strength, resist);
 
                         if let Ok(fighter) =
                             Fighter::new(name, health, skill, speed, strength, resist)
