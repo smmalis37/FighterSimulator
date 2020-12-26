@@ -1,12 +1,12 @@
 use fighter_simulator::*;
 use rayon::prelude::*;
 
-use std::sync::atomic::*;
+use std::{sync::atomic::*, time::Instant};
 
 fn main() {
     const FIGHT_COUNT: usize = 10000;
 
-    let time = std::time::SystemTime::now();
+    let time = Instant::now();
     let fighters = gen_fighters();
     let results = {
         let mut v = Vec::with_capacity(fighters.len());
@@ -56,7 +56,7 @@ fn main() {
         .collect::<Vec<_>>();
     final_results.sort_by_key(|&(_, (w, _, _))| w);
 
-    let final_time = time.elapsed().unwrap();
+    let final_time = Instant::now() - time;
 
     for (f, (w, t, l)) in final_results {
         assert!(w + t + l == fight_count);
