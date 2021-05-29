@@ -121,6 +121,4 @@ impl<'a> FightObserver<'a> for NoneLogger {
     fn getup_roll(&mut self, _: StatValue, _: StatValue, _: StatValue, _: StatValue) {}
 
     fn interval(&mut self, _: &'a Fighter, _: StatValue, _: StatValue) {}
-
-    fn winner(&mut self, _: &'a Fighter) {}
 }

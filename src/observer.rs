@@ -36,5 +36,4 @@ pub trait FightObserver<'a> {
         current_health: StatValue,
         current_speed_penalty: StatValue,
     );
-    fn winner(&mut self, f: &'a Fighter);
 }

@@ -17,7 +17,13 @@ pub fn main() {
     let filename = format!("{}Vs{}.txt", f1.name(), f2.name());
     let file = File::create(filename).expect("Unable to create log file.");
 
-    Fight::new(&f1, &f2).run(&mut Observer { log_file: file });
+    let mut o = Observer { log_file: file };
+    let winner = Fight::new(&f1, &f2).run(&mut o);
+
+    match winner {
+        Some(f) => o.output(&format!("{} wins!", f.name())),
+        None => o.output("It's a draw!"),
+    }
 }
 
 fn get_fighter() -> Fighter {
@@ -67,7 +73,7 @@ struct Observer {
 }
 
 impl Observer {
-    fn output(&mut self, text: &str) {
+    pub fn output(&mut self, text: &str) {
         writeln!(self.log_file, "{}", text).expect("Failed to write to log file.");
         println!("{}", text);
     }
@@ -155,9 +161,5 @@ impl<'a> FightObserver<'a> for Observer {
             current_health,
             current_speed_penalty
         ));
-    }
-
-    fn winner(&mut self, f: &'a Fighter) {
-        self.output(&format!("{} wins!", f.name()));
     }
 }
