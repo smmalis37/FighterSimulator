@@ -1,5 +1,5 @@
+use std::cmp::min;
 use std::cmp::Ordering;
-use std::cmp::{max, min};
 
 use rand::distributions::Uniform;
 use rand::prelude::*;
