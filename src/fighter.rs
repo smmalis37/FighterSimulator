@@ -28,7 +28,7 @@ impl Fighter {
             if value > MAX_STAT_VALUE {
                 return Err(FighterStatError::StatAboveMax(stat));
             }
-            if value <= MIN_STAT_VALUE {
+            if value < MIN_STAT_VALUE {
                 return Err(FighterStatError::StatBelowMin(stat));
             }
             total_cost += value;

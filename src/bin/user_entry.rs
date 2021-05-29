@@ -156,4 +156,8 @@ impl<'a> FightObserver<'a> for Observer {
             current_speed_penalty
         ));
     }
+
+    fn winner(&mut self, f: &'a Fighter) {
+        self.output(&format!("{} wins!", f.name()));
+    }
 }

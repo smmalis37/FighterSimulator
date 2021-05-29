@@ -148,10 +148,9 @@ impl<'a> Fight<'a> {
         let r2 = self.rng.sample(d12);
         let result = r1
             + r2
-            + max(
-                self.fighters[fighter].stat(Speed) - self.speed_penalty[fighter],
-                0,
-            );
+            + self.fighters[fighter]
+                .stat(Speed)
+                .saturating_sub(self.speed_penalty[fighter]);
 
         o.speed_roll(
             self.fighters[fighter],
