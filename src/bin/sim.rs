@@ -4,7 +4,7 @@ use rayon::prelude::*;
 use std::{sync::atomic::*, time::Instant};
 
 fn main() {
-    const FIGHT_COUNT: usize = 1000;
+    const FIGHT_COUNT: usize = 100000;
 
     let time = Instant::now();
     let fighters = gen_fighters();
@@ -57,11 +57,11 @@ fn main() {
 
     let final_time = Instant::now() - time;
 
-    println!("health,skill,speed,strength,resist,wins,ties,losses");
+    println!("power,speed,toughness\twins,ties,losses");
     for (f, (w, t, l)) in final_results {
         assert!(w + t + l == fight_count);
         //let win_rate = (w as f64) / (fight_count as f64) * 100.0;
-        println!("{},{},{},{}", f.name(), w, t, l);
+        println!("{}\t{},{},{}", f.name(), w, t, l);
     }
 
     println!("{:?}", final_time);
@@ -71,11 +71,11 @@ fn gen_fighters() -> Vec<Fighter> {
     let mut fighters = Vec::new();
 
     for speed in MIN_STAT_VALUE..=MAX_STAT_VALUE {
-        for strength in MIN_STAT_VALUE..=MAX_STAT_VALUE {
-            for resist in MIN_STAT_VALUE..=MAX_STAT_VALUE {
-                let name = format!("{},{},{}", speed, strength, resist);
+        for power in MIN_STAT_VALUE..=MAX_STAT_VALUE {
+            for toughness in MIN_STAT_VALUE..=MAX_STAT_VALUE {
+                let name = format!("{},{},{}", power, speed, toughness);
 
-                if let Ok(fighter) = Fighter::new(name, speed, strength, resist) {
+                if let Ok(fighter) = Fighter::new(name, speed, power, toughness) {
                     fighters.push(fighter);
                 }
             }
