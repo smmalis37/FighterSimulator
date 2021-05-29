@@ -26,11 +26,10 @@ fn main() {
         for (i2, f2) in (i1 + 1..fighters.len()).map(|i2| (i2, &fighters[i2])) {
             for _ in 0..FIGHT_COUNT {
                 let fight = Fight::new(f1, f2);
-                let mut report = WinnerLogger { winner: None };
-                fight.run(&mut report);
+                let winner = fight.run(&mut NoneLogger);
 
-                if let Some(winner) = report.winner {
-                    if winner as *const _ == f1 as *const _ {
+                if let Some(winner) = winner {
+                    if std::ptr::eq(winner, f1) {
                         results[i1].0.fetch_add(1, Ordering::Relaxed);
                         results[i2].2.fetch_add(1, Ordering::Relaxed);
                     } else {
@@ -71,20 +70,13 @@ fn main() {
 fn gen_fighters() -> Vec<Fighter> {
     let mut fighters = Vec::new();
 
-    for health in 0..MAX_STAT_POINTS {
-        for skill in 0..MAX_STAT_POINTS {
-            for speed in 0..MAX_STAT_POINTS {
-                for strength in 0..MAX_STAT_POINTS {
-                    for resist in 0..MAX_STAT_POINTS {
-                        let name =
-                            format!("{},{},{},{},{}", health, skill, speed, strength, resist);
+    for speed in MIN_STAT_VALUE..=MAX_STAT_VALUE {
+        for strength in MIN_STAT_VALUE..=MAX_STAT_VALUE {
+            for resist in MIN_STAT_VALUE..=MAX_STAT_VALUE {
+                let name = format!("{},{},{}", speed, strength, resist);
 
-                        if let Ok(fighter) =
-                            Fighter::new(name, health, skill, speed, strength, resist)
-                        {
-                            fighters.push(fighter);
-                        }
-                    }
+                if let Ok(fighter) = Fighter::new(name, speed, strength, resist) {
+                    fighters.push(fighter);
                 }
             }
         }
@@ -93,16 +85,6 @@ fn gen_fighters() -> Vec<Fighter> {
     fighters
 }
 
-struct WinnerLogger<'a> {
-    winner: Option<&'a Fighter>,
-}
+struct NoneLogger;
 
-impl<'a> FightObserver<'a> for WinnerLogger<'a> {
-    fn attack_starting(&mut self, _: &'a Fighter, _: &'a Fighter) {}
-    fn rolls(&mut self, _: &[StatValue]) {}
-    fn adjusts(&mut self, _: &[StatValue]) {}
-    fn finalize_attack(&mut self, _: StatValue, _: SignedStatValue) {}
-    fn winner(&mut self, winner: Option<&'a Fighter>) {
-        self.winner = winner;
-    }
-}
+impl<'a> FightObserver<'a> for NoneLogger {}

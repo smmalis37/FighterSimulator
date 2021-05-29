@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
+use std::cmp::{max, min};
 
-use arrayvec::ArrayVec;
 use rand::distributions::Uniform;
 use rand::prelude::*;
 
@@ -9,11 +9,14 @@ use crate::observer::*;
 use crate::stats::Stat::*;
 use crate::stats::*;
 
+const MAX_HEALTH: StatValue = 40;
+
 #[derive(Debug)]
 pub struct Fight<'a> {
     fighters: [&'a Fighter; 2],
-    current_health: [SignedStatValue; 2],
-    dice: [Uniform<StatValue>; 2],
+    current_health: [StatValue; 2],
+    speed_penalty: [u8; 2],
+    attack_count: [u8; 2],
     rng: SmallRng,
 }
 
@@ -21,69 +24,107 @@ impl<'a> Fight<'a> {
     pub fn new(f1: &'a Fighter, f2: &'a Fighter) -> Fight<'a> {
         Fight {
             fighters: [f1, f2],
-            current_health: [
-                f1.stat(Health) as SignedStatValue,
-                f2.stat(Health) as SignedStatValue,
-            ],
-            dice: [
-                Uniform::new_inclusive(1, f1.stat(Skill)),
-                Uniform::new_inclusive(1, f2.stat(Skill)),
-            ],
+            current_health: [MAX_HEALTH, MAX_HEALTH],
+            speed_penalty: [0, 0],
+            attack_count: [0, 0],
             rng: SmallRng::from_rng(&mut thread_rng()).unwrap(),
         }
     }
 
-    pub fn run<O: FightObserver<'a>>(mut self, observer: &mut O) {
-        while self.run_tick(observer) {}
-    }
+    pub fn run<O: FightObserver<'a>>(mut self, observer: &mut O) -> Option<&'a Fighter> {
+        let d6 = Uniform::new_inclusive(1, 6);
 
-    fn run_tick<O: FightObserver<'a>>(&mut self, observer: &mut O) -> bool {
-        self.run_half_tick(observer, 0, 1);
-        self.run_half_tick(observer, 1, 0);
+        for _round in 1..=12 {
+            for _turn in 0..3 {
+                let speed_rolls = [self.speed_roll(0), self.speed_roll(1)];
 
-        let f0_health = self.current_health[0];
-        let f1_health = self.current_health[1];
+                let (attacker, defender) = match speed_rolls[0].cmp(&speed_rolls[1]) {
+                    Ordering::Less => (1, 0),
+                    Ordering::Greater => (0, 1),
+                    Ordering::Equal => {
+                        const CLINCH_HEAL: StatValue = 2;
+                        for h in self.current_health.iter_mut() {
+                            *h = min(*h + CLINCH_HEAL, MAX_HEALTH);
+                        }
+                        continue;
+                    }
+                };
 
-        if f0_health <= 0 || f1_health <= 0 {
-            observer.winner(match f0_health.cmp(&f1_health) {
-                Ordering::Less => Some(self.fighters[1]),
-                Ordering::Equal => None,
-                Ordering::Greater => Some(self.fighters[0]),
-            });
-            false
-        } else {
-            true
+                let attack_roll = [self.rng.sample(d6), self.rng.sample(d6)];
+                let damage =
+                    (attack_roll[0] + attack_roll[1] + self.fighters[attacker].stat(Power))
+                        .saturating_sub(self.fighters[defender].stat(Toughness));
+                let special_move = attack_roll[0] == 6 && attack_roll[1] >= 5;
+
+                self.current_health[defender] =
+                    self.current_health[defender].saturating_sub(damage);
+                self.attack_count[attacker] += 1;
+
+                let (downed, getup_value) = match self.current_health[defender] {
+                    15..=40 if (damage > 14 || special_move) => (true, 3),
+                    9..=14 if (damage > 12 || special_move) => (true, 4),
+                    1..=8 if (damage > 7 || special_move) => (true, 5),
+                    0 => return Some(self.fighters[attacker]),
+                    _ => (false, 0),
+                };
+
+                if downed {
+                    let rolls = self.rng.sample(d6) + self.rng.sample(d6);
+
+                    let heal = if rolls < getup_value {
+                        return Some(self.fighters[attacker]);
+                    } else if rolls <= 6 {
+                        1
+                    } else {
+                        2
+                    };
+                    self.current_health[defender] += heal;
+
+                    let speed_penalty = match attack_roll[0] {
+                        1 | 2 => 2,
+                        3 => 3,
+                        4 | 5 => 4,
+                        6 => match attack_roll[1] {
+                            1 | 2 | 3 | 4 => 4,
+                            5 | 6 => 5,
+                            _ => unreachable!(),
+                        },
+                        _ => unreachable!(),
+                    };
+                    self.speed_penalty[attacker] += speed_penalty;
+                }
+            }
+
+            match self.attack_count[0].cmp(&self.attack_count[1]) {
+                Ordering::Less => self.speed_penalty[1] += 1,
+                Ordering::Equal => {}
+                Ordering::Greater => self.speed_penalty[0] += 1,
+            }
+            self.attack_count = [0, 0];
+
+            for h in self.current_health.iter_mut() {
+                *h = min(*h + 2, MAX_HEALTH);
+            }
+
+            for h in self.speed_penalty.iter_mut() {
+                *h = h.saturating_sub(1);
+            }
+        }
+
+        match self.current_health[0].cmp(&self.current_health[1]) {
+            Ordering::Less => Some(self.fighters[1]),
+            Ordering::Equal => None,
+            Ordering::Greater => Some(self.fighters[2]),
         }
     }
 
-    fn run_half_tick<O: FightObserver<'a>>(
-        &mut self,
-        observer: &mut O,
-        attacker_index: usize,
-        defender_index: usize,
-    ) {
-        let attacker = self.fighters[attacker_index];
-        let defender = self.fighters[defender_index];
-        let dice_size = self.dice[attacker_index];
-
-        observer.attack_starting(attacker, defender);
-
-        let mut rolls = ArrayVec::<[_; stat_value(Speed, MAX_STAT_POINTS) as usize]>::new();
-        for _ in 0..attacker.stat(Speed) {
-            rolls.push(self.rng.sample(dice_size));
-        }
-
-        observer.rolls(&rolls);
-
-        for r in rolls.iter_mut() {
-            *r = (*r + attacker.stat(Strength)).saturating_sub(defender.stat(Resist));
-        }
-
-        observer.adjusts(&rolls);
-
-        let damage = rolls.into_iter().sum();
-        self.current_health[defender_index] -= damage as SignedStatValue;
-
-        observer.finalize_attack(damage, self.current_health[defender_index]);
+    fn speed_roll(&mut self, fighter: usize) -> StatValue {
+        let d12 = Uniform::new_inclusive(1, 12);
+        self.rng.sample(d12)
+            + self.rng.sample(d12)
+            + max(
+                self.fighters[fighter].stat(Speed) - self.speed_penalty[fighter],
+                0,
+            )
     }
 }

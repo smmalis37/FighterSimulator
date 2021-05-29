@@ -23,13 +23,11 @@ pub fn main() {
 fn get_fighter() -> Fighter {
     loop {
         let name = get_value("Enter the fighter's name:");
-        let health = get_value("Enter the points spent on the fighter's health:");
-        let skill = get_value("Enter the points spent on the fighter's skill:");
         let speed = get_value("Enter the points spent on the fighter's speed:");
-        let strength = get_value("Enter the points spent on the fighter's strength:");
-        let resist = get_value("Enter the points spent on the fighter's resist:");
+        let power = get_value("Enter the points spent on the fighter's power:");
+        let toughness = get_value("Enter the points spent on the fighter's toughness:");
 
-        match Fighter::new(name, health, skill, speed, strength, resist) {
+        match Fighter::new(name, speed, power, toughness) {
             Ok(fighter) => break fighter,
             Err(e) => match e {
                 FighterStatError::IncorrectPointTotal(total) => println!(
@@ -38,7 +36,11 @@ fn get_fighter() -> Fighter {
                 ),
                 FighterStatError::StatAboveMax(stat) => println!(
                     "{:?} values above {} are not allowed.",
-                    stat, MAX_STAT_POINTS
+                    stat, MAX_STAT_VALUE
+                ),
+                FighterStatError::StatBelowMin(stat) => println!(
+                    "{:?} values below {} are not allowed.",
+                    stat, MIN_STAT_VALUE
                 ),
             },
         }
@@ -71,34 +73,4 @@ impl Observer {
     }
 }
 
-impl<'a> FightObserver<'a> for Observer {
-    fn attack_starting(&mut self, attacker: &'a Fighter, defender: &'a Fighter) {
-        self.output(&format!("{} attacks {}.", attacker.name(), defender.name()));
-    }
-
-    fn rolls(&mut self, rolls: &[StatValue]) {
-        self.output(&format!("They roll:\n{:?}.", rolls));
-    }
-
-    fn adjusts(&mut self, rolls: &[StatValue]) {
-        self.output(&format!(
-            "After strength and resist adjustments, the rolls are:\n{:?}.",
-            rolls
-        ));
-    }
-
-    fn finalize_attack(&mut self, damage: StatValue, remaining_health: SignedStatValue) {
-        self.output(&format!(
-            "Dealt {} damage. {} health remaining.",
-            damage, remaining_health
-        ));
-    }
-
-    fn winner(&mut self, winner: Option<&'a Fighter>) {
-        if let Some(w) = winner {
-            self.output(&format!("{} wins!", w.name()));
-        } else {
-            self.output("Nobody wins!");
-        }
-    }
-}
+impl<'a> FightObserver<'a> for Observer {}

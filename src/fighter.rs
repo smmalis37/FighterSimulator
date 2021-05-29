@@ -10,30 +10,26 @@ pub struct Fighter {
 pub enum FighterStatError {
     IncorrectPointTotal(StatValue),
     StatAboveMax(Stat),
+    StatBelowMin(Stat),
 }
 
 impl Fighter {
     pub fn new(
         name: String,
-        health_points: StatValue,
-        skill_points: StatValue,
         speed_points: StatValue,
-        strength_points: StatValue,
-        resist_points: StatValue,
+        power_points: StatValue,
+        tough_points: StatValue,
     ) -> Result<Fighter, FighterStatError> {
-        let stats = StatMap::new(
-            health_points,
-            skill_points,
-            speed_points,
-            strength_points,
-            resist_points,
-        );
+        let stats = StatMap::new(speed_points, power_points, tough_points);
 
         let mut total_cost = 0;
 
         for (stat, &value) in stats.iter() {
-            if value > MAX_STAT_POINTS {
+            if value > MAX_STAT_VALUE {
                 return Err(FighterStatError::StatAboveMax(stat));
+            }
+            if value <= MIN_STAT_VALUE {
+                return Err(FighterStatError::StatBelowMin(stat));
             }
             total_cost += value;
         }
