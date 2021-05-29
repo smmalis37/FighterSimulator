@@ -31,17 +31,20 @@ impl<'a> Fight<'a> {
         }
     }
 
-    pub fn run<O: FightObserver<'a>>(mut self, observer: &mut O) -> Option<&'a Fighter> {
+    pub fn run(mut self, o: &mut impl FightObserver<'a>) -> Option<&'a Fighter> {
         let d6 = Uniform::new_inclusive(1, 6);
 
-        for _round in 1..=12 {
-            for _turn in 0..3 {
-                let speed_rolls = [self.speed_roll(0), self.speed_roll(1)];
+        for round in 1..=12 {
+            o.new_round(round);
+            for turn in 1..=3 {
+                o.new_turn(turn);
+                let speed_rolls = [self.speed_roll(0, o), self.speed_roll(1, o)];
 
                 let (attacker, defender) = match speed_rolls[0].cmp(&speed_rolls[1]) {
                     Ordering::Less => (1, 0),
                     Ordering::Greater => (0, 1),
                     Ordering::Equal => {
+                        o.clinch();
                         const CLINCH_HEAL: StatValue = 2;
                         for h in self.current_health.iter_mut() {
                             *h = min(*h + CLINCH_HEAL, MAX_HEALTH);
@@ -49,6 +52,7 @@ impl<'a> Fight<'a> {
                         continue;
                     }
                 };
+                o.declare_attacker(self.fighters[attacker]);
 
                 let attack_roll = [self.rng.sample(d6), self.rng.sample(d6)];
                 let damage =
@@ -60,6 +64,14 @@ impl<'a> Fight<'a> {
                     self.current_health[defender].saturating_sub(damage);
                 self.attack_count[attacker] += 1;
 
+                o.attack_roll(
+                    attack_roll[0],
+                    attack_roll[1],
+                    damage,
+                    self.fighters[defender],
+                    self.current_health[defender],
+                );
+
                 let (downed, getup_value) = match self.current_health[defender] {
                     15..=40 if (damage > 14 || special_move) => (true, 3),
                     9..=14 if (damage > 12 || special_move) => (true, 4),
@@ -69,7 +81,10 @@ impl<'a> Fight<'a> {
                 };
 
                 if downed {
-                    let rolls = self.rng.sample(d6) + self.rng.sample(d6);
+                    o.downed(self.fighters[defender]);
+                    let r1 = self.rng.sample(d6);
+                    let r2 = self.rng.sample(d6);
+                    let rolls = r1 + r2;
 
                     let heal = if rolls < getup_value {
                         return Some(self.fighters[attacker]);
@@ -79,6 +94,7 @@ impl<'a> Fight<'a> {
                         2
                     };
                     self.current_health[defender] += heal;
+                    o.getup_roll(r1, r2, heal, self.current_health[defender]);
 
                     let speed_penalty = match attack_roll[0] {
                         1 | 2 => 2,
@@ -109,22 +125,42 @@ impl<'a> Fight<'a> {
             for h in self.speed_penalty.iter_mut() {
                 *h = h.saturating_sub(1);
             }
+
+            for i in 0..=1 {
+                o.interval(
+                    self.fighters[i],
+                    self.current_health[i],
+                    self.speed_penalty[i],
+                );
+            }
         }
 
         match self.current_health[0].cmp(&self.current_health[1]) {
             Ordering::Less => Some(self.fighters[1]),
             Ordering::Equal => None,
-            Ordering::Greater => Some(self.fighters[2]),
+            Ordering::Greater => Some(self.fighters[0]),
         }
     }
 
-    fn speed_roll(&mut self, fighter: usize) -> StatValue {
+    fn speed_roll(&mut self, fighter: usize, o: &mut impl FightObserver<'a>) -> StatValue {
         let d12 = Uniform::new_inclusive(1, 12);
-        self.rng.sample(d12)
-            + self.rng.sample(d12)
+        let r1 = self.rng.sample(d12);
+        let r2 = self.rng.sample(d12);
+        let result = r1
+            + r2
             + max(
                 self.fighters[fighter].stat(Speed) - self.speed_penalty[fighter],
                 0,
-            )
+            );
+
+        o.speed_roll(
+            self.fighters[fighter],
+            r1,
+            r2,
+            self.speed_penalty[fighter],
+            result,
+        );
+
+        result
     }
 }

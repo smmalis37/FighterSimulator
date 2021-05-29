@@ -87,4 +87,38 @@ fn gen_fighters() -> Vec<Fighter> {
 
 struct NoneLogger;
 
-impl<'a> FightObserver<'a> for NoneLogger {}
+impl<'a> FightObserver<'a> for NoneLogger {
+    fn new_round(&mut self, _: u8) {}
+
+    fn new_turn(&mut self, _: u8) {}
+
+    fn speed_roll(
+        &mut self,
+        _: &'a Fighter,
+        _: StatValue,
+        _: StatValue,
+        _: StatValue,
+        _: StatValue,
+    ) {
+    }
+
+    fn declare_attacker(&mut self, _: &'a Fighter) {}
+
+    fn clinch(&mut self) {}
+
+    fn attack_roll(
+        &mut self,
+        _: StatValue,
+        _: StatValue,
+        _: StatValue,
+        _: &'a Fighter,
+        _: StatValue,
+    ) {
+    }
+
+    fn downed(&mut self, _: &'a Fighter) {}
+
+    fn getup_roll(&mut self, _: StatValue, _: StatValue, _: StatValue, _: StatValue) {}
+
+    fn interval(&mut self, _: &'a Fighter, _: StatValue, _: StatValue) {}
+}

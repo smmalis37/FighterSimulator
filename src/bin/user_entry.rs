@@ -23,8 +23,8 @@ pub fn main() {
 fn get_fighter() -> Fighter {
     loop {
         let name = get_value("Enter the fighter's name:");
-        let speed = get_value("Enter the points spent on the fighter's speed:");
         let power = get_value("Enter the points spent on the fighter's power:");
+        let speed = get_value("Enter the points spent on the fighter's speed:");
         let toughness = get_value("Enter the points spent on the fighter's toughness:");
 
         match Fighter::new(name, speed, power, toughness) {
@@ -73,4 +73,87 @@ impl Observer {
     }
 }
 
-impl<'a> FightObserver<'a> for Observer {}
+impl<'a> FightObserver<'a> for Observer {
+    fn new_round(&mut self, r: u8) {
+        self.output(&format!("Round {}!", r));
+    }
+
+    fn new_turn(&mut self, r: u8) {
+        self.output(&format!("Turn {}!", r));
+    }
+
+    fn speed_roll(
+        &mut self,
+        f: &'a Fighter,
+        r1: StatValue,
+        r2: StatValue,
+        penalty: StatValue,
+        result: StatValue,
+    ) {
+        self.output(&format!(
+            "{} rolls {} & {}. Combined with current penalty of {} their speed roll is {}.",
+            f.name(),
+            r1,
+            r2,
+            penalty,
+            result
+        ));
+    }
+
+    fn declare_attacker(&mut self, f: &'a Fighter) {
+        self.output(&format!("{} is attacking!", f.name()));
+    }
+
+    fn clinch(&mut self) {
+        self.output("Clinch!");
+    }
+
+    fn attack_roll(
+        &mut self,
+        r1: StatValue,
+        r2: StatValue,
+        damage: StatValue,
+        defender: &'a Fighter,
+        new_health: StatValue,
+    ) {
+        self.output(&format!(
+            "They roll {} & {} for {} damage. {} is now at {} hp.",
+            r1,
+            r2,
+            damage,
+            defender.name(),
+            new_health
+        ));
+    }
+
+    fn downed(&mut self, f: &'a Fighter) {
+        self.output(&format!("{} is down!", f.name()));
+    }
+
+    fn getup_roll(
+        &mut self,
+        r1: StatValue,
+        r2: StatValue,
+        heal_amount: StatValue,
+        new_health: StatValue,
+    ) {
+        self.output(&format!(
+            "They roll {} & {}. They heal {} to {} hp.",
+            r1, r2, heal_amount, new_health
+        ));
+    }
+
+    fn interval(
+        &mut self,
+        f: &'a Fighter,
+        current_health: StatValue,
+        current_speed_penalty: StatValue,
+    ) {
+        self.output(&format!(
+            "After resting {} is at {} hp with a {} speed penalty.",
+            f.name(),
+            current_health,
+            current_speed_penalty
+        ));
+    }
+}
