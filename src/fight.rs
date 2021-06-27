@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use rand::distributions::Uniform;
 use rand::prelude::*;
 
@@ -87,7 +89,11 @@ impl<'a> Fight<'a> {
             }
         }
 
-        None // TODO higher health wins?
+        match self.current_health[0].cmp(&self.current_health[1]) {
+            Ordering::Less => Some(self.fighters[1]),
+            Ordering::Equal => None,
+            Ordering::Greater => Some(self.fighters[0]),
+        }
     }
 
     fn heal(&mut self, o: &mut impl FightObserver<'a>, i: usize) {
