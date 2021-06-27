@@ -66,37 +66,35 @@ impl<'a> Fight<'a> {
                         6 => Special,
                         0 | 8..=StatValue::MAX => unreachable!(),
                     };
-                    let damage = attacker.stat(attack);
-                    *damaged_health = damaged_health.saturating_sub(damage);
 
-                    o.attack(attacker, defender, attack, damage, *damaged_health);
+                    if let Recovery = attack {
+                        self.heal(o, attacker_index);
+                    } else {
+                        let damage = attacker.stat(attack);
+                        *damaged_health = damaged_health.saturating_sub(damage);
+                        o.attack(attacker, defender, attack, damage, *damaged_health);
 
-                    if *damaged_health == 0 {
-                        o.down(defender);
+                        if *damaged_health == 0 {
+                            o.down(defender);
 
-                        let knockdowns = &mut self.knockdowns[defender_index];
-                        *knockdowns += 1;
+                            let knockdowns = &mut self.knockdowns[defender_index];
+                            *knockdowns += 1;
 
-                        if self.rng.gen_bool(1.0 / (*knockdowns as f64 + 1.0)) {
-                            *damaged_health =
-                                self.rng.sample(getup_heal_die) + self.rng.sample(getup_heal_die);
-                            if *knockdowns >= 2 {
-                                *damaged_health /= 2;
+                            if self.rng.gen_bool(1.0 / (*knockdowns as f64 + 1.0)) {
+                                *damaged_health = self.rng.sample(getup_heal_die)
+                                    + self.rng.sample(getup_heal_die);
+                                if *knockdowns >= 2 {
+                                    *damaged_health /= 2;
+                                }
+                                o.getup(defender, *damaged_health);
+                            } else {
+                                return Some(attacker);
                             }
-                            o.getup(defender, *damaged_health);
-                        } else {
-                            return Some(attacker);
                         }
-                    }
 
-                    match attack {
-                        Recovery => {
-                            self.heal(o, attacker_index);
-                        }
-                        Uppercut => {
+                        if let Uppercut = attack {
                             self.stunned[defender_index] = true;
                         }
-                        _ => {}
                     }
                 }
             }
