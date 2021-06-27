@@ -1,6 +1,7 @@
 use crate::stats::*;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Fighter {
     name: String,
     health: StatValue,

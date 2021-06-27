@@ -6,8 +6,10 @@ edition = "2018"
 
 [dependencies]
 rand = { version="0.8.0", features=["small_rng"] }
-enum-map = "1.1"
+enum-map = { version="1.1", features=["serde"] }
 rayon = "1.5.0"
+serde = { version="1.0", features=["derive"] }
+serde_json = "1.0"
 
 [profile.release]
 lto = "thin"
