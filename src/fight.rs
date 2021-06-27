@@ -38,7 +38,7 @@ impl<'a> Fight<'a> {
     }
 
     pub fn run(mut self, o: &mut impl FightObserver<'a>) -> Option<&'a Fighter> {
-        let die = Uniform::new_inclusive(1, 8);
+        let die = Uniform::new_inclusive(1, 7);
         let getup_heal_die = Uniform::new_inclusive(1, 20);
 
         for round in 1..=self.round_count {
@@ -62,9 +62,9 @@ impl<'a> Fight<'a> {
                         2 => Straight,
                         3 => Hook,
                         4 => Uppercut,
-                        5 | 8 => Recovery,
+                        5 => Recovery,
                         6 => Special,
-                        0 | 9..=StatValue::MAX => unreachable!(),
+                        0 | 8..=StatValue::MAX => unreachable!(),
                     };
                     let damage = attacker.stat(attack);
                     *damaged_health = damaged_health.saturating_sub(damage);
