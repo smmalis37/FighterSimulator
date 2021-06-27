@@ -100,12 +100,10 @@ struct NoneLogger;
 
 impl<'a> FightObserver<'a> for NoneLogger {
     fn new_round(&mut self, _: usize) {}
-
     fn new_turn(&mut self, _: usize) {}
-
     fn attack(&mut self, _: &'a Fighter, _: &'a Fighter, _: Stat, _: StatValue, _: StatValue) {}
-
     fn stunned(&mut self, _: &'a Fighter) {}
-
     fn recovery(&mut self, _: &'a Fighter, _: StatValue) {}
+    fn down(&mut self, _: &'a Fighter) {}
+    fn getup(&mut self, _: &'a Fighter, _: StatValue) {}
 }

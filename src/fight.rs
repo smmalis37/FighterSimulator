@@ -13,6 +13,7 @@ pub struct Fight<'a> {
     fighters: [&'a Fighter; 2],
     current_health: [StatValue; 2],
     stunned: [bool; 2],
+    knockdowns: [u8; 2],
     rng: SmallRng,
     round_count: usize,
     turn_count: usize,
@@ -29,6 +30,7 @@ impl<'a> Fight<'a> {
             fighters: [f1, f2],
             current_health: [f1.health(), f2.health()],
             stunned: [false, false],
+            knockdowns: [0, 0],
             rng: SmallRng::from_rng(&mut thread_rng()).unwrap(),
             round_count,
             turn_count,
@@ -37,6 +39,7 @@ impl<'a> Fight<'a> {
 
     pub fn run(mut self, o: &mut impl FightObserver<'a>) -> Option<&'a Fighter> {
         let die = Uniform::new_inclusive(1, 8);
+        let getup_heal_die = Uniform::new_inclusive(1, 20);
 
         for round in 1..=self.round_count {
             o.new_round(round);
@@ -69,7 +72,21 @@ impl<'a> Fight<'a> {
                     o.attack(attacker, defender, attack, damage, *damaged_health);
 
                     if *damaged_health == 0 {
-                        return Some(attacker);
+                        o.down(defender);
+
+                        let knockdowns = &mut self.knockdowns[defender_index];
+                        *knockdowns += 1;
+
+                        if self.rng.gen_bool(1.0 / (*knockdowns as f64 + 1.0)) {
+                            *damaged_health =
+                                self.rng.sample(getup_heal_die) + self.rng.sample(getup_heal_die);
+                            if *knockdowns >= 2 {
+                                *damaged_health /= 2;
+                            }
+                            o.getup(defender, *damaged_health);
+                        } else {
+                            return Some(attacker);
+                        }
                     }
 
                     match attack {

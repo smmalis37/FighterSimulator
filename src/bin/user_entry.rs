@@ -135,4 +135,16 @@ impl<'a> FightObserver<'a> for Observer {
     fn recovery(&mut self, f: &'a Fighter, new_health: StatValue) {
         self.output(&format!("{} heals to {}", f.name(), new_health));
     }
+
+    fn down(&mut self, f: &'a Fighter) {
+        self.output(&format!("{} goes down!", f.name()));
+    }
+
+    fn getup(&mut self, f: &'a Fighter, new_health: StatValue) {
+        self.output(&format!(
+            "{} gets back up with {} health",
+            f.name(),
+            new_health
+        ));
+    }
 }

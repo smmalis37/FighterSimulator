@@ -14,4 +14,6 @@ pub trait FightObserver<'a> {
     );
     fn stunned(&mut self, f: &'a Fighter);
     fn recovery(&mut self, f: &'a Fighter, new_health: StatValue);
+    fn down(&mut self, f: &'a Fighter);
+    fn getup(&mut self, f: &'a Fighter, new_health: StatValue);
 }
