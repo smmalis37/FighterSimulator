@@ -14,11 +14,14 @@ pub fn main() {
     println!("{} successfully registered.", f2.name());
     println!();
 
+    let round_count = get_value("How many rounds:");
+    let turn_count = get_value("How many turns per round:");
+
     let filename = format!("{}Vs{}.txt", f1.name(), f2.name());
     let file = File::create(filename).expect("Unable to create log file.");
 
     let mut o = Observer { log_file: file };
-    let winner = Fight::new(&f1, &f2).run(&mut o);
+    let winner = Fight::new(&f1, &f2, round_count, turn_count).run(&mut o);
 
     match winner {
         Some(f) => o.output(&format!("{} wins!", f.name())),
@@ -29,11 +32,17 @@ pub fn main() {
 fn get_fighter() -> Fighter {
     loop {
         let name = get_value("Enter the fighter's name:");
-        let power = get_value("Enter the points spent on the fighter's power:");
-        let speed = get_value("Enter the points spent on the fighter's speed:");
-        let toughness = get_value("Enter the points spent on the fighter's toughness:");
+        let health = get_value("Enter their health:");
+        let jab = get_value("Enter their jab:");
+        let hook = get_value("Enter their hook:");
+        let straight = get_value("Enter their straight:");
+        let uppercut = get_value("Enter their uppercut:");
+        let special = get_value("Enter their special:");
+        let recovery = get_value("Enter their recovery:");
 
-        match Fighter::new(name, speed, power, toughness) {
+        match Fighter::new(
+            name, health, jab, hook, straight, uppercut, special, recovery,
+        ) {
             Ok(fighter) => break fighter,
             Err(e) => match e {
                 FighterStatError::IncorrectPointTotal(total) => println!(
@@ -80,86 +89,38 @@ impl Observer {
 }
 
 impl<'a> FightObserver<'a> for Observer {
-    fn new_round(&mut self, r: u8) {
-        self.output(&format!("Round {}!", r));
+    fn new_round(&mut self, r: usize) {
+        self.output(&format!("Round {}", r));
     }
 
-    fn new_turn(&mut self, r: u8) {
-        self.output(&format!("Turn {}!", r));
+    fn new_turn(&mut self, t: usize) {
+        self.output(&format!("Turn {}", t));
     }
 
-    fn speed_roll(
+    fn attack(
         &mut self,
-        f: &'a Fighter,
-        r1: StatValue,
-        r2: StatValue,
-        penalty: StatValue,
-        result: StatValue,
-    ) {
-        self.output(&format!(
-            "{} rolls {} & {}. Combined with current penalty of {} their speed roll is {}.",
-            f.name(),
-            r1,
-            r2,
-            penalty,
-            result
-        ));
-    }
-
-    fn declare_attacker(&mut self, f: &'a Fighter) {
-        self.output(&format!("{} is attacking!", f.name()));
-    }
-
-    fn clinch(&mut self) {
-        self.output("Clinch!");
-    }
-
-    fn attack_roll(
-        &mut self,
-        r1: StatValue,
-        r2: StatValue,
-        damage: StatValue,
+        attacker: &'a Fighter,
         defender: &'a Fighter,
+        attack: Stat,
+        damage: StatValue,
         new_health: StatValue,
     ) {
         self.output(&format!(
-            "They roll {} & {} for {} damage. {} is now at {} hp.",
-            r1,
-            r2,
+            "{} hits {} with a {:?} for {} damage. {} is now at {} health.",
+            attacker.name(),
+            defender.name(),
+            attack,
             damage,
             defender.name(),
             new_health
         ));
     }
 
-    fn downed(&mut self, f: &'a Fighter) {
-        self.output(&format!("{} is down!", f.name()));
+    fn stunned(&mut self, f: &'a Fighter) {
+        self.output(&format!("{} is stunned and does nothing", f.name()));
     }
 
-    fn getup_roll(
-        &mut self,
-        r1: StatValue,
-        r2: StatValue,
-        heal_amount: StatValue,
-        new_health: StatValue,
-    ) {
-        self.output(&format!(
-            "They roll {} & {}. They heal {} to {} hp.",
-            r1, r2, heal_amount, new_health
-        ));
-    }
-
-    fn interval(
-        &mut self,
-        f: &'a Fighter,
-        current_health: StatValue,
-        current_speed_penalty: StatValue,
-    ) {
-        self.output(&format!(
-            "After resting {} is at {} hp with a {} speed penalty.",
-            f.name(),
-            current_health,
-            current_speed_penalty
-        ));
+    fn recovery(&mut self, f: &'a Fighter, new_health: StatValue) {
+        self.output(&format!("{} heals to {}", f.name(), new_health));
     }
 }

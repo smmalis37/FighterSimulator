@@ -3,7 +3,7 @@ use crate::stats::*;
 
 pub trait FightObserver<'a> {
     fn new_round(&mut self, r: usize);
-    fn new_turn(&mut self, r: usize);
+    fn new_turn(&mut self, t: usize);
     fn attack(
         &mut self,
         attacker: &'a Fighter,
