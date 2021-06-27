@@ -104,10 +104,13 @@ impl<'a> Fight<'a> {
             }
         }
 
-        match self.current_health[0].cmp(&self.current_health[1]) {
-            Ordering::Less => Some(self.fighters[1]),
-            Ordering::Equal => None,
-            Ordering::Greater => Some(self.fighters[0]),
+        match (
+            self.knockdowns[0].cmp(&self.knockdowns[1]),
+            self.current_health[0].cmp(&self.current_health[1]),
+        ) {
+            (Ordering::Less, _) | (Ordering::Equal, Ordering::Greater) => Some(self.fighters[0]),
+            (Ordering::Equal, Ordering::Equal) => None,
+            (Ordering::Greater, _) | (Ordering::Equal, Ordering::Less) => Some(self.fighters[1]),
         }
     }
 
