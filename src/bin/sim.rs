@@ -4,7 +4,7 @@ use rayon::prelude::*;
 use std::{sync::atomic::*, time::Instant};
 
 fn main() {
-    const FIGHT_COUNT: usize = 100000;
+    const FIGHT_COUNT: usize = 1000;
 
     let time = Instant::now();
     let fighters = gen_fighters();
@@ -25,7 +25,7 @@ fn main() {
     fighters.par_iter().enumerate().for_each(|(i1, f1)| {
         for (i2, f2) in (i1 + 1..fighters.len()).map(|i2| (i2, &fighters[i2])) {
             for _ in 0..FIGHT_COUNT {
-                let fight = Fight::new(f1, f2);
+                let fight = Fight::new(f1, f2, 12, 5);
                 let winner = fight.run(&mut NoneLogger);
 
                 if let Some(winner) = winner {
@@ -70,13 +70,24 @@ fn main() {
 fn gen_fighters() -> Vec<Fighter> {
     let mut fighters = Vec::new();
 
-    for speed in MIN_STAT_VALUE..=MAX_STAT_VALUE {
-        for power in MIN_STAT_VALUE..=MAX_STAT_VALUE {
-            for toughness in MIN_STAT_VALUE..=MAX_STAT_VALUE {
-                let name = format!("{},{},{}", power, speed, toughness);
+    for jab in MIN_STAT_VALUE..=MAX_STAT_VALUE {
+        for hook in MIN_STAT_VALUE..=MAX_STAT_VALUE {
+            for straight in MIN_STAT_VALUE..=MAX_STAT_VALUE {
+                for uppercut in MIN_STAT_VALUE..=MAX_STAT_VALUE {
+                    for special in MIN_STAT_VALUE..=MAX_STAT_VALUE {
+                        for recovery in MIN_STAT_VALUE..=MAX_STAT_VALUE {
+                            let name = format!(
+                                "{},{},{},{},{},{}",
+                                jab, hook, straight, uppercut, special, recovery
+                            );
 
-                if let Ok(fighter) = Fighter::new(name, speed, power, toughness) {
-                    fighters.push(fighter);
+                            if let Ok(fighter) = Fighter::new(
+                                name, 100, jab, hook, straight, uppercut, special, recovery,
+                            ) {
+                                fighters.push(fighter);
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -88,37 +99,13 @@ fn gen_fighters() -> Vec<Fighter> {
 struct NoneLogger;
 
 impl<'a> FightObserver<'a> for NoneLogger {
-    fn new_round(&mut self, _: u8) {}
+    fn new_round(&mut self, _: usize) {}
 
-    fn new_turn(&mut self, _: u8) {}
+    fn new_turn(&mut self, _: usize) {}
 
-    fn speed_roll(
-        &mut self,
-        _: &'a Fighter,
-        _: StatValue,
-        _: StatValue,
-        _: StatValue,
-        _: StatValue,
-    ) {
-    }
+    fn attack(&mut self, _: &'a Fighter, _: &'a Fighter, _: Stat, _: StatValue, _: StatValue) {}
 
-    fn declare_attacker(&mut self, _: &'a Fighter) {}
+    fn stunned(&mut self, _: &'a Fighter) {}
 
-    fn clinch(&mut self) {}
-
-    fn attack_roll(
-        &mut self,
-        _: StatValue,
-        _: StatValue,
-        _: StatValue,
-        _: &'a Fighter,
-        _: StatValue,
-    ) {
-    }
-
-    fn downed(&mut self, _: &'a Fighter) {}
-
-    fn getup_roll(&mut self, _: StatValue, _: StatValue, _: StatValue, _: StatValue) {}
-
-    fn interval(&mut self, _: &'a Fighter, _: StatValue, _: StatValue) {}
+    fn recovery(&mut self, _: &'a Fighter, _: StatValue) {}
 }
