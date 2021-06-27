@@ -3,6 +3,7 @@ use crate::stats::*;
 #[derive(Debug)]
 pub struct Fighter {
     name: String,
+    health: StatValue,
     stats: StatMap,
 }
 
@@ -16,11 +17,15 @@ pub enum FighterStatError {
 impl Fighter {
     pub fn new(
         name: String,
-        speed_points: StatValue,
-        power_points: StatValue,
-        tough_points: StatValue,
+        health: StatValue,
+        jab: StatValue,
+        hook: StatValue,
+        straight: StatValue,
+        uppercut: StatValue,
+        special: StatValue,
+        recovery: StatValue,
     ) -> Result<Fighter, FighterStatError> {
-        let stats = StatMap::new(speed_points, power_points, tough_points);
+        let stats = StatMap::new(jab, hook, straight, uppercut, special, recovery);
 
         let mut total_cost = 0;
 
@@ -38,7 +43,11 @@ impl Fighter {
             return Err(FighterStatError::IncorrectPointTotal(total_cost));
         }
 
-        Ok(Fighter { name, stats })
+        Ok(Fighter {
+            name,
+            health,
+            stats,
+        })
     }
 
     pub fn name(&self) -> &str {
@@ -47,5 +56,9 @@ impl Fighter {
 
     pub(crate) fn stat(&self, stat: Stat) -> StatValue {
         self.stats.value(stat)
+    }
+
+    pub(crate) fn health(&self) -> StatValue {
+        self.health
     }
 }

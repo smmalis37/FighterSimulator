@@ -4,20 +4,34 @@ pub type StatValue = u8;
 
 #[derive(Debug, Enum, Copy, Clone)]
 pub enum Stat {
-    Speed,
-    Power,
-    Toughness,
+    Jab,
+    Hook,
+    Straight,
+    Uppercut,
+    Special,
+    Recovery,
 }
 
 #[derive(Debug)]
 pub(crate) struct StatMap(EnumMap<Stat, StatValue>);
 
 impl StatMap {
-    pub(crate) fn new(speed: StatValue, power: StatValue, toughness: StatValue) -> Self {
+    pub(crate) fn new(
+        jab: StatValue,
+        hook: StatValue,
+        straight: StatValue,
+        uppercut: StatValue,
+        special: StatValue,
+        recovery: StatValue,
+    ) -> Self {
+        use Stat::*;
         let map = enum_map! {
-            Stat::Speed => speed,
-            Stat::Power => power,
-            Stat::Toughness => toughness,
+                Jab => jab,
+                Hook => hook,
+                Straight => straight,
+                Uppercut => uppercut,
+                Special => special,
+                Recovery => recovery,
         };
         Self(map)
     }
@@ -31,6 +45,6 @@ impl StatMap {
     }
 }
 
-pub const TOTAL_POINTS: StatValue = 15;
-pub const MAX_STAT_VALUE: StatValue = 10;
+pub const TOTAL_POINTS: StatValue = 30;
+pub const MAX_STAT_VALUE: StatValue = 25;
 pub const MIN_STAT_VALUE: StatValue = 1;
