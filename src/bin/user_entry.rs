@@ -17,7 +17,8 @@ pub fn main() {
     let filename = format!("{}Vs{}.txt", f1.name(), f2.name());
     let mut file = File::create(filename).expect("Unable to create log file.");
 
-    Fight::new(&f1, &f2).run(|s| {
+    Fight::new(&f1, &f2).run(|s_fn| {
+        let s = s_fn();
         println!("{}", s);
         writeln!(file, "{}", s).expect("Failed to write to log file.");
     });

@@ -30,7 +30,7 @@ impl<'a> Fight<'a> {
         f
     }
 
-    pub fn run(mut self, mut logger: impl FnMut(&str)) -> &'a Fighter {
+    pub fn run<L: FnMut(&dyn Fn() -> String)>(mut self, mut logger: L) -> &'a Fighter {
         while match self.run_tick(&mut logger) {
             Some(x) => return x,
             None => true,
@@ -38,33 +38,37 @@ impl<'a> Fight<'a> {
         unreachable!()
     }
 
-    fn run_tick(&mut self, logger: &mut impl FnMut(&str)) -> Option<&'a Fighter> {
-        logger(&format!(
-            "Speed rolls are {}: {}, {}: {}",
-            self.fighters[0].name(),
-            self.speed_roll[0],
-            self.fighters[1].name(),
-            self.speed_roll[1]
-        ));
+    fn run_tick<L: FnMut(&dyn Fn() -> String)>(&mut self, logger: &mut L) -> Option<&'a Fighter> {
+        logger(&|| {
+            format!(
+                "Speed rolls are {}: {}, {}: {}",
+                self.fighters[0].name(),
+                self.speed_roll[0],
+                self.fighters[1].name(),
+                self.speed_roll[1]
+            )
+        });
         let [attacker, defender] = match self.speed_roll[0].cmp(&self.speed_roll[1]) {
             std::cmp::Ordering::Less => [0, 1],
             std::cmp::Ordering::Equal => {
-                logger("It's a tie!");
+                logger(&|| "It's a tie!".into());
                 let x = self.rng.gen_bool(0.5) as usize;
                 [x, 1 - x]
             }
             std::cmp::Ordering::Greater => [1, 0],
         };
-        logger(&format!("{} is attacking!", self.fighters[attacker].name()));
+        logger(&|| format!("{} is attacking!", self.fighters[attacker].name()));
 
         let hit_roll = self.d20.sample(&mut self.rng);
-        logger(&format!(
-            "A roll of {} + {} against {}'s dodge of {}.",
-            hit_roll,
-            self.fighters[attacker].stat(Accuracy),
-            self.fighters[defender].name(),
-            self.fighters[defender].stat(Dodge)
-        ));
+        logger(&|| {
+            format!(
+                "A roll of {} + {} against {}'s dodge of {}.",
+                hit_roll,
+                self.fighters[attacker].stat(Accuracy),
+                self.fighters[defender].name(),
+                self.fighters[defender].stat(Dodge)
+            )
+        });
 
         if hit_roll + self.fighters[attacker].stat(Accuracy) >= self.fighters[defender].stat(Dodge)
         {
@@ -74,34 +78,40 @@ impl<'a> Fight<'a> {
                 (damage_roll + self.fighters[attacker].stat(Attack))
                     .saturating_sub(self.fighters[defender].stat(Defense)),
             );
-            logger(&format!(
-                "A roll of {} + {} against a defense of {} means {} damage.",
-                damage_roll,
-                self.fighters[attacker].stat(Attack),
-                self.fighters[defender].stat(Defense),
-                damage
-            ));
+            logger(&|| {
+                format!(
+                    "A roll of {} + {} against a defense of {} means {} damage.",
+                    damage_roll,
+                    self.fighters[attacker].stat(Attack),
+                    self.fighters[defender].stat(Defense),
+                    damage
+                )
+            });
 
             let dead;
             (self.current_health[defender], dead) =
                 self.current_health[defender].overflowing_sub(damage);
 
             if dead {
-                logger(&format!(
-                    "{} goes down! The fight is over! {} wins!",
-                    self.fighters[defender].name(),
-                    self.fighters[attacker].name()
-                ));
+                logger(&|| {
+                    format!(
+                        "{} goes down! The fight is over! {} wins!",
+                        self.fighters[defender].name(),
+                        self.fighters[attacker].name()
+                    )
+                });
                 return Some(self.fighters[attacker]);
             } else {
-                logger(&format!(
-                    "{} is now down to {} health.",
-                    self.fighters[defender].name(),
-                    self.current_health[defender]
-                ));
+                logger(&|| {
+                    format!(
+                        "{} is now down to {} health.",
+                        self.fighters[defender].name(),
+                        self.current_health[defender]
+                    )
+                });
             }
         } else {
-            logger("Miss!");
+            logger(&|| "Miss!".into());
         }
 
         self.speed_roll[defender] =
