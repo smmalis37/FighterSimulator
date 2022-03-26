@@ -15,19 +15,14 @@ pub enum FighterStatError {
 impl Fighter {
     pub fn new(
         name: String,
-        health_points: StatValue,
-        skill_points: StatValue,
-        speed_points: StatValue,
-        strength_points: StatValue,
-        resist_points: StatValue,
+        health: StatValue,
+        attack: StatValue,
+        defense: StatValue,
+        speed: StatValue,
+        accuracy: StatValue,
+        dodge: StatValue,
     ) -> Result<Fighter, FighterStatError> {
-        let stats = StatMap::new(
-            health_points,
-            skill_points,
-            speed_points,
-            strength_points,
-            resist_points,
-        );
+        let stats = StatMap::new(health, attack, defense, speed, accuracy, dodge);
 
         let mut total_cost = 0;
 

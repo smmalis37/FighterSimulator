@@ -1,15 +1,15 @@
 use enum_map::EnumMap;
 
 pub type StatValue = u8;
-pub type SignedStatValue = i16;
 
 #[derive(Debug, Enum, Copy, Clone)]
 pub enum Stat {
     Health,
-    Skill,
+    Attack,
+    Defense,
     Speed,
-    Strength,
-    Resist,
+    Accuracy,
+    Dodge,
 }
 
 #[derive(Debug)]
@@ -18,17 +18,19 @@ pub(crate) struct StatMap(EnumMap<Stat, StatValue>);
 impl StatMap {
     pub(crate) fn new(
         health: StatValue,
-        skill: StatValue,
+        attack: StatValue,
+        defense: StatValue,
         speed: StatValue,
-        strength: StatValue,
-        resist: StatValue,
+        accuracy: StatValue,
+        dodge: StatValue,
     ) -> Self {
-        let mut map = EnumMap::new();
+        let mut map = EnumMap::default();
         map[Stat::Health] = health;
-        map[Stat::Skill] = skill;
+        map[Stat::Attack] = attack;
+        map[Stat::Defense] = defense;
         map[Stat::Speed] = speed;
-        map[Stat::Strength] = strength;
-        map[Stat::Resist] = resist;
+        map[Stat::Accuracy] = accuracy;
+        map[Stat::Dodge] = dodge;
         Self(map)
     }
 
@@ -43,15 +45,15 @@ impl StatMap {
 }
 
 pub(crate) const fn stat_value(stat: Stat, x: StatValue) -> StatValue {
-    let x = x as usize;
-    (match stat {
-        Stat::Health => [15, 30, 45, 60, 75, 90],
-        Stat::Skill => [6, 8, 10, 12, 14, 20],
-        Stat::Speed => [1, 1, 2, 3, 4, 5],
-        Stat::Strength => [0, 1, 2, 3, 4, 5],
-        Stat::Resist => [0, 1, 2, 3, 4, 5],
-    })[x]
+    match stat {
+        Stat::Health => (x + 1) * 20,
+        Stat::Attack => x,
+        Stat::Defense => x,
+        Stat::Speed => x,
+        Stat::Accuracy => x,
+        Stat::Dodge => x + 10,
+    }
 }
 
-pub const TOTAL_POINTS: StatValue = 7;
+pub const TOTAL_POINTS: StatValue = 15;
 pub const MAX_STAT_POINTS: StatValue = 5;
