@@ -4,7 +4,7 @@ use rayon::prelude::*;
 use std::{sync::atomic::*, time::Instant};
 
 fn main() {
-    const FIGHT_COUNT: usize = 100;
+    const FIGHT_COUNT: usize = 1;
 
     let time = Instant::now();
     let fighters = gen_fighters();
@@ -22,7 +22,7 @@ fn main() {
         for (i2, f2) in (i1 + 1..fighters.len()).map(|i2| (i2, &fighters[i2])) {
             for _ in 0..FIGHT_COUNT {
                 let fight = Fight::new(f1, f2);
-                let winner = fight.run();
+                let winner = fight.run(|_| {});
 
                 if std::ptr::eq(winner, f1) {
                     results[i1].0.fetch_add(1, Ordering::Relaxed);
