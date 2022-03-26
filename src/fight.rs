@@ -112,6 +112,9 @@ impl<'a> Fight<'a> {
     }
 
     fn do_speed_roll(&mut self, fi: usize) {
-        self.speed_roll[fi] = self.d20.sample(&mut self.rng) - self.fighters[fi].stat(Speed);
+        self.speed_roll[fi] = self
+            .d20
+            .sample(&mut self.rng)
+            .saturating_sub(self.fighters[fi].stat(Speed));
     }
 }
