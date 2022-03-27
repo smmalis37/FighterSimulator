@@ -46,12 +46,12 @@ impl StatMap {
 
 pub(crate) const fn stat_value(stat: Stat, x: StatValue) -> StatValue {
     match stat {
-        Stat::Health => (x + 1) * 20,
-        Stat::Attack => x,
-        Stat::Defense => x,
-        Stat::Speed => x,
-        Stat::Accuracy => x,
-        Stat::Dodge => x + 10,
+        Stat::Health => (x * 50) + 100,
+        Stat::Attack => x * 4,
+        Stat::Defense => x * 3,
+        Stat::Speed => x * 9,
+        Stat::Accuracy => x * 10,
+        Stat::Dodge => (x * 13) + 30,
     }
 }
 

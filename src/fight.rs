@@ -10,8 +10,8 @@ pub struct Fight<'a> {
     fighters: [&'a Fighter; 2],
     current_health: [StatValue; 2],
     speed_roll: [StatValue; 2],
-    d8: Uniform<StatValue>,
     d20: Uniform<StatValue>,
+    d100: Uniform<StatValue>,
     rng: SmallRng,
 }
 
@@ -21,8 +21,8 @@ impl<'a> Fight<'a> {
             fighters: [f1, f2],
             current_health: [f1.stat(Health), f2.stat(Health)],
             speed_roll: [0, 0],
-            d8: Uniform::new_inclusive(1, 8),
             d20: Uniform::new_inclusive(1, 20),
+            d100: Uniform::new_inclusive(1, 100),
             rng: SmallRng::from_rng(&mut thread_rng()).unwrap(),
         };
         f.do_speed_roll(0);
@@ -59,7 +59,7 @@ impl<'a> Fight<'a> {
         };
         logger(&|| format!("{} is attacking!", self.fighters[attacker].name()));
 
-        let hit_roll = self.d20.sample(&mut self.rng);
+        let hit_roll = self.d100.sample(&mut self.rng);
         logger(&|| {
             format!(
                 "A roll of {} + {} against {}'s dodge of {}.",
@@ -72,7 +72,7 @@ impl<'a> Fight<'a> {
 
         if hit_roll + self.fighters[attacker].stat(Accuracy) >= self.fighters[defender].stat(Dodge)
         {
-            let damage_roll = self.d8.sample(&mut self.rng);
+            let damage_roll = self.d20.sample(&mut self.rng);
             let damage = std::cmp::max(
                 1,
                 (damage_roll + self.fighters[attacker].stat(Attack))
@@ -123,7 +123,7 @@ impl<'a> Fight<'a> {
 
     fn do_speed_roll(&mut self, fi: usize) {
         self.speed_roll[fi] = self
-            .d20
+            .d100
             .sample(&mut self.rng)
             .saturating_sub(self.fighters[fi].stat(Speed));
     }
