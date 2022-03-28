@@ -10,6 +10,7 @@ pub struct Fight<'a> {
     fighters: [&'a Fighter; 2],
     current_health: [StatValue; 2],
     speed_roll: [StatValue; 2],
+    d8: Uniform<StatValue>,
     d20: Uniform<StatValue>,
     d100: Uniform<StatValue>,
     rng: SmallRng,
@@ -21,7 +22,8 @@ impl<'a> Fight<'a> {
             fighters: [f1, f2],
             current_health: [f1.stat(Health), f2.stat(Health)],
             speed_roll: [0, 0],
-            d20: Uniform::new_inclusive(1, 20),
+            d8: Uniform::new_inclusive(1, 20),
+            d20: Uniform::new_inclusive(1, 10),
             d100: Uniform::new_inclusive(1, 100),
             rng: SmallRng::from_rng(&mut thread_rng()).unwrap(),
         };
@@ -72,7 +74,7 @@ impl<'a> Fight<'a> {
 
         if hit_roll + self.fighters[attacker].stat(Accuracy) >= self.fighters[defender].stat(Dodge)
         {
-            let damage_roll = self.d20.sample(&mut self.rng);
+            let damage_roll = self.d8.sample(&mut self.rng);
             let damage = std::cmp::max(
                 1,
                 (damage_roll + self.fighters[attacker].stat(Attack))
@@ -95,9 +97,10 @@ impl<'a> Fight<'a> {
             if dead {
                 logger(&|| {
                     format!(
-                        "{} goes down! The fight is over! {} wins!",
+                        "{} goes down! The fight is over! {} wins with {} health remaining!",
                         self.fighters[defender].name(),
-                        self.fighters[attacker].name()
+                        self.fighters[attacker].name(),
+                        self.current_health[attacker]
                     )
                 });
                 return Some(self.fighters[attacker]);
@@ -122,9 +125,9 @@ impl<'a> Fight<'a> {
     }
 
     fn do_speed_roll(&mut self, fi: usize) {
-        self.speed_roll[fi] = self
-            .d100
+        self.speed_roll[fi] = std::cmp::max(1, self
+            .d20
             .sample(&mut self.rng)
-            .saturating_sub(self.fighters[fi].stat(Speed));
-    }
+            .saturating_sub(self.fighters[fi].stat(Speed)));
+        }
 }
