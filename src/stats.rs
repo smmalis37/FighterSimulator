@@ -1,6 +1,6 @@
 use enum_map::EnumMap;
 
-pub type StatValue = u8;
+pub type StatValue = u16;
 
 #[derive(Debug, Enum, Copy, Clone)]
 pub enum Stat {

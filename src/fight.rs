@@ -90,11 +90,10 @@ impl<'a> Fight<'a> {
                 )
             });
 
-            let dead;
-            (self.current_health[defender], dead) =
-                self.current_health[defender].overflowing_sub(damage);
+            self.current_health[defender] =
+                self.current_health[defender].saturating_sub(damage);
 
-            if dead {
+            if self.current_health[defender] == 0 {
                 logger(&|| {
                     format!(
                         "{} goes down! The fight is over! {} wins with {} health remaining!",
