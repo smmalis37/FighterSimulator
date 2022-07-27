@@ -1,8 +1,9 @@
-use enum_map::EnumMap;
+use enum_map::{Enum, EnumMap};
+use serde::{Deserialize, Serialize};
 
 pub type StatValue = u16;
 
-#[derive(Debug, Enum, Copy, Clone)]
+#[derive(Debug, Enum, Copy, Clone, Serialize, Deserialize)]
 pub enum Stat {
     Health,
     Attack,
@@ -12,7 +13,7 @@ pub enum Stat {
     Dodge,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct StatMap(EnumMap<Stat, StatValue>);
 
 impl StatMap {

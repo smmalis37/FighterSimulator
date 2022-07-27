@@ -25,8 +25,16 @@ pub fn main() {
 }
 
 fn get_fighter() -> Fighter {
-    loop {
+    let f = loop {
         let name = get_value("Enter the fighter's name:");
+
+        if let Some(f) = File::open(&format!("{}.txt", name))
+            .ok()
+            .and_then(|f| serde_json::from_reader(f).ok())
+        {
+            return f;
+        }
+
         let health = get_value("Enter the points spent on the fighter's health:");
         let attack = get_value("Enter the points spent on the fighter's attack:");
         let defense = get_value("Enter the points spent on the fighter's defense:");
@@ -47,7 +55,11 @@ fn get_fighter() -> Fighter {
                 ),
             },
         }
-    }
+    };
+
+    serde_json::to_writer(File::create(&format!("{}.txt", f.name())).unwrap(), &f).unwrap();
+
+    f
 }
 
 fn get_value<T: FromStr>(prompt: &str) -> T {
