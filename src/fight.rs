@@ -10,7 +10,7 @@ pub struct Fight<'a> {
     fighters: [&'a Fighter; 2],
     current_health: [StatValue; 2],
     speed_roll: [StatValue; 2],
-    d8: Uniform<StatValue>,
+    d14: Uniform<StatValue>,
     d20: Uniform<StatValue>,
     d100: Uniform<StatValue>,
     rng: SmallRng,
@@ -22,8 +22,8 @@ impl<'a> Fight<'a> {
             fighters: [f1, f2],
             current_health: [f1.stat(Health), f2.stat(Health)],
             speed_roll: [0, 0],
-            d8: Uniform::new_inclusive(1, 20),
-            d20: Uniform::new_inclusive(1, 10),
+            d14: Uniform::new_inclusive(1, 14),
+            d20: Uniform::new_inclusive(1, 20),
             d100: Uniform::new_inclusive(1, 100),
             rng: SmallRng::from_rng(&mut thread_rng()).unwrap(),
         };
@@ -74,10 +74,18 @@ impl<'a> Fight<'a> {
 
         if hit_roll + self.fighters[attacker].stat(Accuracy) >= self.fighters[defender].stat(Dodge)
         {
-            let damage_roll = self.d8.sample(&mut self.rng);
+            let crit_bonus = if hit_roll >= 99 - ((self.fighters[attacker].stat(Accuracy) / 10) * 2)
+            {
+                logger(&|| "It's a crit!".into());
+                2
+            } else {
+                1
+            };
+
+            let damage_roll = self.d20.sample(&mut self.rng);
             let damage = std::cmp::max(
                 1,
-                (damage_roll + self.fighters[attacker].stat(Attack))
+                ((damage_roll + self.fighters[attacker].stat(Attack)) * crit_bonus)
                     .saturating_sub(self.fighters[defender].stat(Defense)),
             );
             logger(&|| {
@@ -90,8 +98,7 @@ impl<'a> Fight<'a> {
                 )
             });
 
-            self.current_health[defender] =
-                self.current_health[defender].saturating_sub(damage);
+            self.current_health[defender] = self.current_health[defender].saturating_sub(damage);
 
             if self.current_health[defender] == 0 {
                 logger(&|| {
@@ -124,9 +131,11 @@ impl<'a> Fight<'a> {
     }
 
     fn do_speed_roll(&mut self, fi: usize) {
-        self.speed_roll[fi] = std::cmp::max(1, self
-            .d20
-            .sample(&mut self.rng)
-            .saturating_sub(self.fighters[fi].stat(Speed)));
-        }
+        self.speed_roll[fi] = std::cmp::max(
+            1,
+            self.d14
+                .sample(&mut self.rng)
+                .saturating_sub(self.fighters[fi].stat(Speed)),
+        );
+    }
 }
