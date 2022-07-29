@@ -74,7 +74,7 @@ impl<'a> Fight<'a> {
 
         if hit_roll + self.fighters[attacker].stat(Accuracy) >= self.fighters[defender].stat(Dodge)
         {
-            let crit_bonus = if hit_roll >= 99 - ((self.fighters[attacker].stat(Accuracy) / 10) * 2)
+            let crit_bonus = if hit_roll >= 99 - ((self.fighters[attacker].stat(Accuracy) / 10) * 3)
             {
                 logger(&|| "It's a crit!".into());
                 2
@@ -91,8 +91,8 @@ impl<'a> Fight<'a> {
             logger(&|| {
                 format!(
                     "A roll of {} + {} against a defense of {} means {} damage.",
-                    damage_roll,
-                    self.fighters[attacker].stat(Attack),
+                    damage_roll * crit_bonus,
+                    self.fighters[attacker].stat(Attack) * crit_bonus,
                     self.fighters[defender].stat(Defense),
                     damage
                 )
