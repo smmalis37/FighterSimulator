@@ -1,6 +1,7 @@
 extern crate fighter_simulator;
 
 use fighter_simulator::*;
+use rand::{thread_rng, Rng};
 
 use std::fs::File;
 use std::io::{stdin, Write};
@@ -17,7 +18,7 @@ pub fn main() {
     let filename = format!("{}Vs{}.txt", f1.name(), f2.name());
     let mut file = File::create(filename).expect("Unable to create log file.");
 
-    Fight::new(&f1, &f2).run(|s_fn| {
+    Fight::new(&f1, &f2, thread_rng().gen()).run(|s_fn| {
         let s = s_fn();
         println!("{}", s);
         writeln!(file, "{}", s).expect("Failed to write to log file.");

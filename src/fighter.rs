@@ -1,10 +1,11 @@
 use crate::stats::*;
+use enum_map::EnumMap;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Fighter {
     name: String,
-    stats: StatMap,
+    stats: EnumMap<Stat, StatValue>,
 }
 
 #[derive(Debug)]
@@ -23,7 +24,16 @@ impl Fighter {
         accuracy: StatValue,
         dodge: StatValue,
     ) -> Result<Fighter, FighterStatError> {
-        let stats = StatMap::new(health, attack, defense, speed, accuracy, dodge);
+        let stats = {
+            let mut map = EnumMap::default();
+            map[Stat::Health] = health;
+            map[Stat::Attack] = attack;
+            map[Stat::Defense] = defense;
+            map[Stat::Speed] = speed;
+            map[Stat::Accuracy] = accuracy;
+            map[Stat::Dodge] = dodge;
+            map
+        };
 
         let mut total_cost = 0;
 
@@ -46,6 +56,10 @@ impl Fighter {
     }
 
     pub(crate) fn stat(&self, stat: Stat) -> StatValue {
-        self.stats.value(stat)
+        stat_value(stat, self.raw_stat(stat))
+    }
+
+    pub(crate) fn raw_stat(&self, stat: Stat) -> StatValue {
+        self.stats[stat]
     }
 }

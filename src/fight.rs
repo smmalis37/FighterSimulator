@@ -1,31 +1,56 @@
 use rand::distributions::Uniform;
 use rand::prelude::*;
+use static_init::dynamic;
 
 use crate::fighter::*;
 use crate::stats::Stat::*;
 use crate::stats::*;
 
+#[dynamic]
+static D14: Uniform<StatValue> = Uniform::new_inclusive(1, 14);
+#[dynamic]
+static D20: Uniform<StatValue> = Uniform::new_inclusive(1, 20);
+#[dynamic]
+static D100: Uniform<StatValue> = Uniform::new_inclusive(1, 100);
+
+#[derive(Debug)]
+struct FightFighter<'a> {
+    fighter: &'a Fighter,
+    current_health: StatValue,
+    speed_roll: StatValue,
+    index: usize,
+}
+
+impl<'a> FightFighter<'a> {
+    fn new(fighter: &'a Fighter, index: usize) -> Self {
+        Self {
+            fighter,
+            current_health: fighter.stat(Health),
+            speed_roll: 0,
+            index,
+        }
+    }
+}
+
+impl<'a> std::ops::Deref for FightFighter<'a> {
+    type Target = Fighter;
+
+    fn deref(&self) -> &Self::Target {
+        self.fighter
+    }
+}
+
 #[derive(Debug)]
 pub struct Fight<'a> {
-    fighters: [&'a Fighter; 2],
-    current_health: [StatValue; 2],
-    speed_roll: [StatValue; 2],
-    d14: Uniform<StatValue>,
-    d20: Uniform<StatValue>,
-    d100: Uniform<StatValue>,
+    fighters: [FightFighter<'a>; 2],
     rng: SmallRng,
 }
 
 impl<'a> Fight<'a> {
-    pub fn new(f1: &'a Fighter, f2: &'a Fighter) -> Fight<'a> {
-        let mut f = Fight {
-            fighters: [f1, f2],
-            current_health: [f1.stat(Health), f2.stat(Health)],
-            speed_roll: [0, 0],
-            d14: Uniform::new_inclusive(1, 14),
-            d20: Uniform::new_inclusive(1, 20),
-            d100: Uniform::new_inclusive(1, 100),
-            rng: SmallRng::from_rng(&mut thread_rng()).unwrap(),
+    pub fn new(f1: &'a Fighter, f2: &'a Fighter, seed: u64) -> Fight<'a> {
+        let mut f = Self {
+            fighters: [FightFighter::new(f1, 0), FightFighter::new(f2, 1)],
+            rng: SmallRng::seed_from_u64(seed),
         };
         f.do_speed_roll(0);
         f.do_speed_roll(1);
@@ -45,77 +70,89 @@ impl<'a> Fight<'a> {
             format!(
                 "Speed rolls are {}: {}, {}: {}",
                 self.fighters[0].name(),
-                self.speed_roll[0],
+                self.fighters[0].speed_roll,
                 self.fighters[1].name(),
-                self.speed_roll[1]
+                self.fighters[1].speed_roll
             )
         });
-        let [attacker, defender] = match self.speed_roll[0].cmp(&self.speed_roll[1]) {
-            std::cmp::Ordering::Less => [0, 1],
+
+        let [attacker, defender] = match self.fighters[0]
+            .speed_roll
+            .cmp(&self.fighters[1].speed_roll)
+        {
+            std::cmp::Ordering::Less => {
+                let [x, y] = &mut self.fighters;
+                [x, y]
+            }
             std::cmp::Ordering::Equal => {
                 logger(&|| "It's a tie!".into());
-                let x = self.rng.gen_bool(0.5) as usize;
-                [x, 1 - x]
+                let [x, y] = &mut self.fighters;
+                if self.rng.gen() {
+                    [x, y]
+                } else {
+                    [y, x]
+                }
             }
-            std::cmp::Ordering::Greater => [1, 0],
+            std::cmp::Ordering::Greater => {
+                let [x, y] = &mut self.fighters;
+                [y, x]
+            }
         };
-        logger(&|| format!("{} is attacking!", self.fighters[attacker].name()));
+        logger(&|| format!("{} is attacking!", attacker.name()));
 
-        let hit_roll = self.d100.sample(&mut self.rng);
+        let hit_roll = D100.sample(&mut self.rng);
         logger(&|| {
             format!(
                 "A roll of {} + {} against {}'s dodge of {}.",
                 hit_roll,
-                self.fighters[attacker].stat(Accuracy),
-                self.fighters[defender].name(),
-                self.fighters[defender].stat(Dodge)
+                attacker.stat(Accuracy),
+                defender.name(),
+                defender.stat(Dodge)
             )
         });
 
-        if hit_roll + self.fighters[attacker].stat(Accuracy) >= self.fighters[defender].stat(Dodge)
-        {
-            let crit_bonus = if hit_roll >= 99 - ((self.fighters[attacker].stat(Accuracy) / 10) * 3)
-            {
+        if hit_roll + attacker.stat(Accuracy) >= defender.stat(Dodge) {
+            let crit_bonus = if hit_roll >= 99 - (attacker.raw_stat(Accuracy) * 3) {
                 logger(&|| "It's a crit!".into());
                 2
             } else {
                 1
             };
 
-            let damage_roll = self.d20.sample(&mut self.rng);
+            let damage_roll = D20.sample(&mut self.rng);
             let damage = std::cmp::max(
                 1,
-                ((damage_roll + self.fighters[attacker].stat(Attack)) * crit_bonus)
-                    .saturating_sub(self.fighters[defender].stat(Defense)),
+                ((damage_roll + attacker.stat(Attack)) * crit_bonus)
+                    .saturating_sub(defender.stat(Defense)),
             );
             logger(&|| {
                 format!(
                     "A roll of {} + {} against a defense of {} means {} damage.",
                     damage_roll * crit_bonus,
-                    self.fighters[attacker].stat(Attack) * crit_bonus,
-                    self.fighters[defender].stat(Defense),
+                    attacker.stat(Attack) * crit_bonus,
+                    defender.stat(Defense),
                     damage
                 )
             });
 
-            self.current_health[defender] = self.current_health[defender].saturating_sub(damage);
+            defender.current_health = defender.current_health.saturating_sub(damage);
 
-            if self.current_health[defender] == 0 {
+            if defender.current_health == 0 {
                 logger(&|| {
                     format!(
                         "{} goes down! The fight is over! {} wins with {} health remaining!",
-                        self.fighters[defender].name(),
-                        self.fighters[attacker].name(),
-                        self.current_health[attacker]
+                        defender.name(),
+                        attacker.name(),
+                        attacker.current_health
                     )
                 });
-                return Some(self.fighters[attacker]);
+                return Some(attacker.fighter);
             } else {
                 logger(&|| {
                     format!(
                         "{} is now down to {} health.",
-                        self.fighters[defender].name(),
-                        self.current_health[defender]
+                        defender.name(),
+                        defender.current_health
                     )
                 });
             }
@@ -123,18 +160,17 @@ impl<'a> Fight<'a> {
             logger(&|| "Miss!".into());
         }
 
-        self.speed_roll[defender] =
-            self.speed_roll[defender].saturating_sub(self.speed_roll[attacker]);
-        self.do_speed_roll(attacker);
+        defender.speed_roll = defender.speed_roll.saturating_sub(attacker.speed_roll);
+        let i = attacker.index;
+        self.do_speed_roll(i);
 
         None
     }
 
     fn do_speed_roll(&mut self, fi: usize) {
-        self.speed_roll[fi] = std::cmp::max(
+        self.fighters[fi].speed_roll = std::cmp::max(
             1,
-            self.d14
-                .sample(&mut self.rng)
+            D14.sample(&mut self.rng)
                 .saturating_sub(self.fighters[fi].stat(Speed)),
         );
     }

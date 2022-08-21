@@ -1,4 +1,5 @@
 use fighter_simulator::*;
+use rand::{rngs::SmallRng, thread_rng, Rng, SeedableRng};
 use rayon::prelude::*;
 
 use std::{sync::atomic::*, time::Instant};
@@ -19,9 +20,10 @@ fn main() {
     println!("Simulating {} fighters.", fighters.len());
 
     fighters.par_iter().enumerate().for_each(|(i1, f1)| {
+        let mut rng = SmallRng::from_entropy();
         for (i2, f2) in (i1 + 1..fighters.len()).map(|i2| (i2, &fighters[i2])) {
             for _ in 0..FIGHT_COUNT {
-                let fight = Fight::new(f1, f2);
+                let fight = Fight::new(f1, f2, rng.gen());
                 let winner = fight.run(|_| {});
 
                 if std::ptr::eq(winner, f1) {
