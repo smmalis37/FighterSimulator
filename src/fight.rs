@@ -18,16 +18,14 @@ struct FightFighter<'a> {
     fighter: &'a Fighter,
     current_health: StatValue,
     speed_roll: StatValue,
-    index: usize,
 }
 
 impl<'a> FightFighter<'a> {
-    fn new(fighter: &'a Fighter, index: usize) -> Self {
+    fn new(fighter: &'a Fighter) -> Self {
         Self {
             fighter,
             current_health: fighter.stat(Health),
             speed_roll: 0,
-            index,
         }
     }
 }
@@ -49,11 +47,11 @@ pub struct Fight<'a> {
 impl<'a> Fight<'a> {
     pub fn new(f1: &'a Fighter, f2: &'a Fighter, seed: u64) -> Fight<'a> {
         let mut f = Self {
-            fighters: [FightFighter::new(f1, 0), FightFighter::new(f2, 1)],
+            fighters: [FightFighter::new(f1), FightFighter::new(f2)],
             rng: SmallRng::seed_from_u64(seed),
         };
-        f.do_speed_roll(0);
-        f.do_speed_roll(1);
+        do_speed_roll(&mut f.fighters[0], &mut f.rng);
+        do_speed_roll(&mut f.fighters[1], &mut f.rng);
         f
     }
 
@@ -161,17 +159,12 @@ impl<'a> Fight<'a> {
         }
 
         defender.speed_roll = defender.speed_roll.saturating_sub(attacker.speed_roll);
-        let i = attacker.index;
-        self.do_speed_roll(i);
+        do_speed_roll(attacker, &mut self.rng);
 
         None
     }
+}
 
-    fn do_speed_roll(&mut self, fi: usize) {
-        self.fighters[fi].speed_roll = std::cmp::max(
-            1,
-            D14.sample(&mut self.rng)
-                .saturating_sub(self.fighters[fi].stat(Speed)),
-        );
-    }
+fn do_speed_roll(fi: &mut FightFighter, rng: &mut SmallRng) {
+    fi.speed_roll = std::cmp::max(1, D14.sample(rng).saturating_sub(fi.stat(Speed)));
 }
