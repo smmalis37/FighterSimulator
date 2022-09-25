@@ -39,64 +39,124 @@ impl<'a> std::ops::Deref for FightFighter<'a> {
 }
 
 #[derive(Debug)]
-pub struct Fight<'a> {
-    fighters: [FightFighter<'a>; 2],
+pub struct Fight<'a, const TEAM_SIZE: usize> {
+    fighters: [[FightFighter<'a>; TEAM_SIZE]; 2],
     rng: SmallRng,
 }
 
-impl<'a> Fight<'a> {
-    pub fn new(f1: &'a Fighter, f2: &'a Fighter, seed: u64) -> Fight<'a> {
+impl<'a, const TEAM_SIZE: usize> Fight<'a, TEAM_SIZE> {
+    pub fn new(
+        t1: [&'a Fighter; TEAM_SIZE],
+        t2: [&'a Fighter; TEAM_SIZE],
+        seed: u64,
+    ) -> Fight<'a, TEAM_SIZE> {
         let mut f = Self {
-            fighters: [FightFighter::new(f1), FightFighter::new(f2)],
+            fighters: [
+                t1.map(|f| FightFighter::new(f)),
+                t2.map(|f| FightFighter::new(f)),
+            ],
             rng: SmallRng::seed_from_u64(seed),
         };
-        do_speed_roll(&mut f.fighters[0], &mut f.rng);
-        do_speed_roll(&mut f.fighters[1], &mut f.rng);
+
+        for team in f.fighters.iter_mut() {
+            for fighter in team.iter_mut() {
+                do_speed_roll(fighter, &mut f.rng);
+            }
+        }
         f
     }
 
     pub fn run<L: FnMut(&dyn Fn() -> String)>(mut self, mut logger: L) -> &'a Fighter {
-        while match self.run_tick(&mut logger) {
-            Some(x) => return x,
-            None => true,
-        } {}
-        unreachable!()
+        loop {
+            self.run_tick(&mut logger);
+            for (a, d) in [(0, 1), (1, 0)] {
+                if self.fighters[d].iter().all(|f| f.current_health == 0) {
+                    logger(&|| {
+                        format!(
+                            "The fight is over! Remaining healths: {}",
+                            self.fighters[a]
+                                .each_ref()
+                                .map(|f| format!("{} - {}", f.name(), f.current_health))
+                                .join(", ")
+                        )
+                    });
+
+                    return self.fighters[a][0].fighter;
+                }
+            }
+        }
     }
 
-    fn run_tick<L: FnMut(&dyn Fn() -> String)>(&mut self, logger: &mut L) -> Option<&'a Fighter> {
+    fn run_tick<L: FnMut(&dyn Fn() -> String)>(&mut self, logger: &mut L) {
         logger(&|| {
             format!(
-                "Speed rolls are {}: {}, {}: {}",
-                self.fighters[0].name(),
-                self.fighters[0].speed_roll,
-                self.fighters[1].name(),
-                self.fighters[1].speed_roll
+                "Speed rolls are: {}",
+                self.fighters
+                    .each_ref()
+                    .map(|t| t
+                        .each_ref()
+                        .map(|f| if f.current_health != 0 {
+                            format!("{} - {}", f.name(), f.speed_roll)
+                        } else {
+                            String::new()
+                        })
+                        .join(", "))
+                    .join(", ")
             )
         });
 
-        let [attacker, defender] = match self.fighters[0]
-            .speed_roll
-            .cmp(&self.fighters[1].speed_roll)
-        {
-            std::cmp::Ordering::Less => {
-                let [x, y] = &mut self.fighters;
-                [x, y]
-            }
-            std::cmp::Ordering::Equal => {
-                logger(&|| "It's a tie!".into());
-                let [x, y] = &mut self.fighters;
-                if self.rng.gen() {
-                    [x, y]
+        let (attacker, defender) = {
+            let (mut a, mut def_team) = (None, None);
+            for (f, dt) in (0..TEAM_SIZE)
+                .map(|f| ((0, f), 1))
+                .chain((0..TEAM_SIZE).map(|f| ((1, f), 0)))
+            {
+                if self.fighters[f.0][f.1].current_health == 0 {
+                    continue;
+                }
+
+                if a.is_none() {
+                    a = Some(f);
+                    def_team = Some(dt);
                 } else {
-                    [y, x]
+                    let au = a.unwrap();
+                    match self.fighters[au.0][au.1]
+                        .speed_roll
+                        .cmp(&self.fighters[f.0][f.1].speed_roll)
+                    {
+                        std::cmp::Ordering::Less => {}
+                        std::cmp::Ordering::Equal => {
+                            if self.rng.gen() {
+                                a = Some(f);
+                                def_team = Some(dt);
+                            }
+                        }
+                        std::cmp::Ordering::Greater => {
+                            a = Some(f);
+                            def_team = Some(dt);
+                        }
+                    };
                 }
             }
-            std::cmp::Ordering::Greater => {
-                let [x, y] = &mut self.fighters;
-                [y, x]
-            }
+
+            let teams = self.fighters.split_at_mut(1);
+            let (a_team, d_team) = if def_team.unwrap() == 1 {
+                (teams.0, teams.1)
+            } else {
+                (teams.1, teams.0)
+            };
+
+            let d = loop {
+                let d = d_team[0].choose_mut(&mut self.rng).unwrap();
+                if d.current_health > 0 {
+                    break d;
+                }
+            };
+
+            (&mut a_team[0][a.unwrap().1], d)
         };
-        logger(&|| format!("{} is attacking!", attacker.name()));
+
+        logger(&|| format!("{} is attacking {}!", attacker.name(), defender.name()));
 
         let hit_roll = D100.sample(&mut self.rng);
         logger(&|| {
@@ -136,15 +196,7 @@ impl<'a> Fight<'a> {
             defender.current_health = defender.current_health.saturating_sub(damage);
 
             if defender.current_health == 0 {
-                logger(&|| {
-                    format!(
-                        "{} goes down! The fight is over! {} wins with {} health remaining!",
-                        defender.name(),
-                        attacker.name(),
-                        attacker.current_health
-                    )
-                });
-                return Some(attacker.fighter);
+                logger(&|| format!("{} goes down!", defender.name(),));
             } else {
                 logger(&|| {
                     format!(
@@ -158,10 +210,15 @@ impl<'a> Fight<'a> {
             logger(&|| "Miss!".into());
         }
 
-        defender.speed_roll = defender.speed_roll.saturating_sub(attacker.speed_roll);
+        let attack_roll = attacker.speed_roll;
         do_speed_roll(attacker, &mut self.rng);
+        attacker.speed_roll += attack_roll;
 
-        None
+        self.fighters.iter_mut().for_each(|t| {
+            t.iter_mut().for_each(|f| {
+                f.speed_roll = f.speed_roll.saturating_sub(attack_roll);
+            })
+        });
     }
 }
 

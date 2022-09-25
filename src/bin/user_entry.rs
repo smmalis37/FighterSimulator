@@ -1,3 +1,5 @@
+#![feature(array_methods)]
+
 extern crate fighter_simulator;
 
 use fighter_simulator::*;
@@ -8,17 +10,37 @@ use std::io::{stdin, Write};
 use std::str::FromStr;
 
 pub fn main() {
-    let f1 = get_fighter();
-    println!("{} successfully registered.", f1.name());
-    println!();
-    let f2 = get_fighter();
-    println!("{} successfully registered.", f2.name());
+    const TEAM_SIZE: usize = 2;
+    println!("Team size is {}.", TEAM_SIZE);
+
+    let t1 = [(); TEAM_SIZE].map(|_| {
+        let f = get_fighter();
+        println!("{} successfully registered.", f.name());
+        println!();
+        f
+    });
+
+    println!("Team 1 successfully registered.");
     println!();
 
-    let filename = format!("{}Vs{}.txt", f1.name(), f2.name());
+    let t2 = [(); TEAM_SIZE].map(|_| {
+        let f = get_fighter();
+        println!("{} successfully registered.", f.name());
+        println!();
+        f
+    });
+
+    println!("Team 2 successfully registered.");
+    println!();
+
+    let filename = format!(
+        "{}Vs{}.txt",
+        t1.each_ref().map(|f| f.name().to_string()).join(","),
+        t2.each_ref().map(|f| f.name().to_string()).join(",")
+    );
     let mut file = File::create(filename).expect("Unable to create log file.");
 
-    Fight::new(&f1, &f2, thread_rng().gen()).run(|s_fn| {
+    Fight::new(t1.each_ref(), t2.each_ref(), thread_rng().gen()).run(|s_fn| {
         let s = s_fn();
         println!("{}", s);
         writeln!(file, "{}", s).expect("Failed to write to log file.");
