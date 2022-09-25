@@ -43,18 +43,25 @@ fn get_fighter() -> Fighter {
         let accuracy = get_value("Enter the points spent on the fighter's accuracy:");
         let dodge = get_value("Enter the points spent on the fighter's dodge:");
 
-        match Fighter::new(name, health, attack, defense, speed, accuracy, dodge) {
-            Ok(fighter) => break fighter,
-            Err(e) => match e {
-                FighterStatError::IncorrectPointTotal(total) => println!(
-                    "That build uses {} points. You must use exactly {} points.",
-                    total, TOTAL_POINTS
-                ),
-                FighterStatError::StatAboveMax(stat) => println!(
-                    "{:?} values above {} are not allowed.",
-                    stat, MAX_STAT_POINTS
-                ),
-            },
+        let fighter = Fighter::new(name, health, attack, defense, speed, accuracy, dodge);
+
+        if fighter.validate(true) {
+            break fighter;
+        } else {
+            if loop {
+                let mut buf = String::new();
+                println!("Ok? (y/n)");
+                stdin().read_line(&mut buf).unwrap();
+                let yn = buf.trim().to_ascii_lowercase();
+
+                if yn == "y" {
+                    break true;
+                } else if yn == "n" {
+                    break false;
+                }
+            } {
+                break fighter;
+            }
         }
     };
 

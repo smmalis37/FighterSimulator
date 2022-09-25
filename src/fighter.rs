@@ -23,7 +23,7 @@ impl Fighter {
         speed: StatValue,
         accuracy: StatValue,
         dodge: StatValue,
-    ) -> Result<Fighter, FighterStatError> {
+    ) -> Fighter {
         let stats = {
             let mut map = EnumMap::default();
             map[Stat::Health] = health;
@@ -35,20 +35,38 @@ impl Fighter {
             map
         };
 
-        let mut total_cost = 0;
+        Fighter { name, stats }
+    }
 
-        for (stat, &value) in stats.iter() {
+    pub fn validate(&self, print: bool) -> bool {
+        let mut total_cost = 0;
+        let mut valid = true;
+
+        for (stat, &value) in self.stats.iter() {
             if value > MAX_STAT_POINTS {
-                return Err(FighterStatError::StatAboveMax(stat));
+                if print {
+                    println!(
+                        "Warning, {}'s {:?} is above the normal maximum.",
+                        self.name(),
+                        stat
+                    );
+                }
+                valid = false;
             }
             total_cost += value;
         }
 
         if total_cost != TOTAL_POINTS {
-            return Err(FighterStatError::IncorrectPointTotal(total_cost));
+            if print {
+                println!(
+                    "Warning, {}'s stat total is above the normal maximum.",
+                    self.name()
+                );
+            }
+            valid = false;
         }
 
-        Ok(Fighter { name, stats })
+        valid
     }
 
     pub fn name(&self) -> &str {

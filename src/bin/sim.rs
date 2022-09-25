@@ -1,5 +1,5 @@
 use fighter_simulator::*;
-use rand::{rngs::SmallRng, thread_rng, Rng, SeedableRng};
+use rand::{rngs::SmallRng, Rng, SeedableRng};
 use rayon::prelude::*;
 
 use std::{sync::atomic::*, time::Instant};
@@ -74,9 +74,9 @@ fn gen_fighters() -> Vec<Fighter> {
                                 health, attack, defense, speed, accuracy, dodge
                             );
 
-                            if let Ok(fighter) =
-                                Fighter::new(name, health, attack, defense, speed, accuracy, dodge)
-                            {
+                            let fighter =
+                                Fighter::new(name, health, attack, defense, speed, accuracy, dodge);
+                            if fighter.validate(false) {
                                 fighters.push(fighter);
                             }
                         }
