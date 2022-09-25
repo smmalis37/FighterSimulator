@@ -7,6 +7,10 @@ use crate::stats::Stat::*;
 use crate::stats::*;
 
 #[dynamic]
+static D6: Uniform<StatValue> = Uniform::new_inclusive(1, 6);
+#[dynamic]
+static D10: Uniform<StatValue> = Uniform::new_inclusive(1, 10);
+#[dynamic]
 static D14: Uniform<StatValue> = Uniform::new_inclusive(1, 14);
 #[dynamic]
 static D20: Uniform<StatValue> = Uniform::new_inclusive(1, 20);
@@ -18,6 +22,7 @@ struct FightFighter<'a> {
     fighter: &'a Fighter,
     current_health: StatValue,
     speed_roll: StatValue,
+    knockdown_count: StatValue,
 }
 
 impl<'a> FightFighter<'a> {
@@ -26,6 +31,7 @@ impl<'a> FightFighter<'a> {
             fighter,
             current_health: fighter.stat(Health),
             speed_roll: 0,
+            knockdown_count: 0,
         }
     }
 }
@@ -196,7 +202,22 @@ impl<'a, const TEAM_SIZE: usize> Fight<'a, TEAM_SIZE> {
             defender.current_health = defender.current_health.saturating_sub(damage);
 
             if defender.current_health == 0 {
-                logger(&|| format!("{} goes down!", defender.name(),));
+                logger(&|| format!("{} goes down!", defender.name()));
+                defender.knockdown_count += 1;
+                for i in 1..=10 {
+                    logger(&|| format!("{}!", i));
+                    if D10.sample(&mut self.rng) >= 5 + defender.knockdown_count {
+                        defender.current_health = 10 * D6.sample(&mut self.rng);
+                        logger(&|| {
+                            format!(
+                                "{} gets back up! They now have {} health.",
+                                defender.name(),
+                                defender.current_health
+                            )
+                        });
+                        break;
+                    }
+                }
             } else {
                 logger(&|| {
                     format!(

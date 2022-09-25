@@ -10,7 +10,7 @@ use std::io::{stdin, Write};
 use std::str::FromStr;
 
 pub fn main() {
-    const TEAM_SIZE: usize = 2;
+    const TEAM_SIZE: usize = 1;
     println!("Team size is {}.", TEAM_SIZE);
 
     let t1 = [(); TEAM_SIZE].map(|_| {
