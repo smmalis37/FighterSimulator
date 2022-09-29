@@ -206,7 +206,7 @@ impl<'a, const TEAM_SIZE: usize> Fight<'a, TEAM_SIZE> {
                 defender.knockdown_count += 1;
                 for i in 1..=10 {
                     logger(&|| format!("{}!", i));
-                    if D10.sample(&mut self.rng) >= 5 + defender.knockdown_count {
+                    if i != 10 && D10.sample(&mut self.rng) >= 5 + defender.knockdown_count {
                         defender.current_health = 10 * D6.sample(&mut self.rng);
                         logger(&|| {
                             format!(
