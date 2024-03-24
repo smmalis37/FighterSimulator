@@ -1,6 +1,5 @@
-#![feature(array_methods)]
-
 mod fight;
+mod fight_fighter;
 mod fighter;
 mod stats;
 

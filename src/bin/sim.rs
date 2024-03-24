@@ -1,11 +1,10 @@
+use fastrand::Rng;
 use fighter_simulator::*;
-use rand::{rngs::SmallRng, Rng, SeedableRng};
 use rayon::prelude::*;
-
 use std::{sync::atomic::*, time::Instant};
 
 fn main() {
-    const FIGHT_COUNT: usize = 5;
+    const FIGHT_COUNT: usize = 10;
 
     let time = Instant::now();
     let fighters = gen_fighters();
@@ -20,10 +19,10 @@ fn main() {
     println!("Simulating {} fighters.", fighters.len());
 
     fighters.par_iter().enumerate().for_each(|(i1, f1)| {
-        let mut rng = SmallRng::from_entropy();
+        let mut rng = Rng::new();
         for (i2, f2) in (i1 + 1..fighters.len()).map(|i2| (i2, &fighters[i2])) {
             for _ in 0..FIGHT_COUNT {
-                let fight = Fight::new([f1], [f2], rng.gen());
+                let fight = Fight::new([f1], [f2], rng.fork().get_seed());
                 let winner = fight.run(|_| {});
 
                 if std::ptr::eq(winner, f1) {
@@ -75,8 +74,10 @@ fn gen_fighters() -> Vec<Fighter> {
                                     health, attack, defense, speed, accuracy, dodge, conviction
                                 );
 
-                                let fighter =
-                                    Fighter::new(name, health, attack, defense, speed, accuracy, dodge, conviction);
+                                let fighter = Fighter::new(
+                                    name, health, attack, defense, speed, accuracy, dodge,
+                                    conviction,
+                                );
                                 if fighter.validate(false) {
                                     fighters.push(fighter);
                                 }

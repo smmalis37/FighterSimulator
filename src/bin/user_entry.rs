@@ -1,10 +1,7 @@
-#![feature(array_methods)]
-
 extern crate fighter_simulator;
 
+use fastrand::Rng;
 use fighter_simulator::*;
-use rand::{thread_rng, Rng};
-
 use std::fs::File;
 use std::io::{stdin, Write};
 use std::str::FromStr;
@@ -40,7 +37,7 @@ pub fn main() {
     );
     let mut file = File::create(filename).expect("Unable to create log file.");
 
-    Fight::new(t1.each_ref(), t2.each_ref(), thread_rng().gen()).run(|s_fn| {
+    Fight::new(t1.each_ref(), t2.each_ref(), Rng::new().get_seed()).run(|s_fn| {
         let s = s_fn();
         println!("{}", s);
         writeln!(file, "{}", s).expect("Failed to write to log file.");
@@ -66,29 +63,29 @@ fn get_fighter() -> Fighter {
         let dodge = get_value("Enter the points spent on the fighter's dodge:");
         let conviction = get_value("Enter the points spent on the fighter's conviction:");
 
-        let fighter = Fighter::new(name, health, attack, defense, speed, accuracy, dodge, conviction);
+        let fighter = Fighter::new(
+            name, health, attack, defense, speed, accuracy, dodge, conviction,
+        );
 
         if fighter.validate(true) {
             break fighter;
-        } else {
-            if loop {
-                let mut buf = String::new();
-                println!("Ok? (y/n)");
-                stdin().read_line(&mut buf).unwrap();
-                let yn = buf.trim().to_ascii_lowercase();
+        } else if loop {
+            let mut buf = String::new();
+            println!("Ok? (y/n)");
+            stdin().read_line(&mut buf).unwrap();
+            let yn = buf.trim().to_ascii_lowercase();
 
-                if yn == "y" {
-                    break true;
-                } else if yn == "n" {
-                    break false;
-                }
-            } {
-                break fighter;
+            if yn == "y" {
+                break true;
+            } else if yn == "n" {
+                break false;
             }
+        } {
+            break fighter;
         }
     };
 
-    serde_json::to_writer(File::create(&format!("{}.txt", f.name())).unwrap(), &f).unwrap();
+    serde_json::to_writer(File::create(format!("{}.txt", f.name())).unwrap(), &f).unwrap();
 
     f
 }

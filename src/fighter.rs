@@ -15,6 +15,7 @@ pub enum FighterStatError {
 }
 
 impl Fighter {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         name: String,
         health: StatValue,
@@ -75,10 +76,6 @@ impl Fighter {
 
     pub fn name(&self) -> &str {
         &self.name
-    }
-
-    pub(crate) fn stat(&self, stat: Stat) -> StatValue {
-        stat_value(stat, self.raw_stat(stat))
     }
 
     pub(crate) fn raw_stat(&self, stat: Stat) -> StatValue {
