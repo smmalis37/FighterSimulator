@@ -5,7 +5,7 @@ use rayon::prelude::*;
 use std::{sync::atomic::*, time::Instant};
 
 fn main() {
-    const FIGHT_COUNT: usize = 100;
+    const FIGHT_COUNT: usize = 5;
 
     let time = Instant::now();
     let fighters = gen_fighters();
@@ -50,7 +50,7 @@ fn main() {
 
     let final_time = Instant::now() - time;
 
-    println!("health,attack,defense,speed,accuracy,dodge,wins,losses,");
+    println!("health,attack,defense,speed,accuracy,dodge,conviction,wins,losses,");
     for (f, (w, l)) in final_results {
         assert!(w + l == fight_count);
         //let win_rate = (w as f64) / (fight_count as f64) * 100.0;
@@ -69,15 +69,17 @@ fn gen_fighters() -> Vec<Fighter> {
                 for speed in 0..=MAX_STAT_POINTS {
                     for accuracy in 0..=MAX_STAT_POINTS {
                         for dodge in 0..=MAX_STAT_POINTS {
-                            let name = format!(
-                                "{},{},{},{},{},{}",
-                                health, attack, defense, speed, accuracy, dodge
-                            );
+                            for conviction in 0..=MAX_STAT_POINTS {
+                                let name = format!(
+                                    "{},{},{},{},{},{},{}",
+                                    health, attack, defense, speed, accuracy, dodge, conviction
+                                );
 
-                            let fighter =
-                                Fighter::new(name, health, attack, defense, speed, accuracy, dodge);
-                            if fighter.validate(false) {
-                                fighters.push(fighter);
+                                let fighter =
+                                    Fighter::new(name, health, attack, defense, speed, accuracy, dodge, conviction);
+                                if fighter.validate(false) {
+                                    fighters.push(fighter);
+                                }
                             }
                         }
                     }

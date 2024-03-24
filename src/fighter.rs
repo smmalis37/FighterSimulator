@@ -23,6 +23,7 @@ impl Fighter {
         speed: StatValue,
         accuracy: StatValue,
         dodge: StatValue,
+        conviction: StatValue,
     ) -> Fighter {
         let stats = {
             let mut map = EnumMap::default();
@@ -32,6 +33,7 @@ impl Fighter {
             map[Stat::Speed] = speed;
             map[Stat::Accuracy] = accuracy;
             map[Stat::Dodge] = dodge;
+            map[Stat::Conviction] = conviction;
             map
         };
 
@@ -59,8 +61,10 @@ impl Fighter {
         if total_cost != TOTAL_POINTS {
             if print {
                 println!(
-                    "Warning, {}'s stat total is above the normal maximum.",
-                    self.name()
+                    "Warning, {}'s stat total of {} is not equal to the normal maximum of {}.",
+                    self.name(),
+                    total_cost,
+                    TOTAL_POINTS
                 );
             }
             valid = false;

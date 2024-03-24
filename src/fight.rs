@@ -7,17 +7,33 @@ use crate::stats::Stat::*;
 use crate::stats::*;
 
 #[dynamic]
-static D14: Uniform<StatValue> = Uniform::new_inclusive(1, 14);
+//hp regain and get up chance
+static REGEN: Uniform<StatValue> = Uniform::new_inclusive(1, 60);
 #[dynamic]
-static D20: Uniform<StatValue> = Uniform::new_inclusive(1, 20);
+static D10: Uniform<StatValue> = Uniform::new_inclusive(1, 100);
 #[dynamic]
-static D100: Uniform<StatValue> = Uniform::new_inclusive(1, 100);
+static D50: Uniform<StatValue> = Uniform::new_inclusive(1, 50);
+#[dynamic]
+//speed
+static D14: Uniform<StatValue> = Uniform::new_inclusive(1, 140);
+#[dynamic]
+// damage
+static D20: Uniform<StatValue> = Uniform::new_inclusive(1, 200);
+#[dynamic]
+//hit chance
+static D100: Uniform<StatValue> = Uniform::new_inclusive(1, 1000);
 
 #[derive(Debug)]
 struct FightFighter<'a> {
     fighter: &'a Fighter,
     current_health: StatValue,
     speed_roll: StatValue,
+    knockdown_count: StatValue,
+    current_attack: StatValue,
+    current_defense: StatValue,
+    current_speed: StatValue,
+    current_accuracy: StatValue,
+    current_dodge: StatValue,
 }
 
 impl<'a> FightFighter<'a> {
@@ -26,6 +42,12 @@ impl<'a> FightFighter<'a> {
             fighter,
             current_health: fighter.stat(Health),
             speed_roll: 0,
+            knockdown_count: 0,
+            current_attack: fighter.stat(Attack),
+            current_defense: fighter.stat(Defense),
+            current_speed: fighter.stat(Speed),
+            current_accuracy: fighter.stat(Accuracy),
+            current_dodge: fighter.stat(Dodge),
         }
     }
 }
@@ -70,7 +92,7 @@ impl<'a, const TEAM_SIZE: usize> Fight<'a, TEAM_SIZE> {
         loop {
             self.run_tick(&mut logger);
             for (a, d) in [(0, 1), (1, 0)] {
-                if self.fighters[d].iter().all(|f| f.current_health == 0) {
+                if self.fighters[d].iter().all(|f| f.current_health <= 0) {
                     logger(&|| {
                         format!(
                             "The fight is over! Remaining healths: {}",
@@ -95,7 +117,7 @@ impl<'a, const TEAM_SIZE: usize> Fight<'a, TEAM_SIZE> {
                     .each_ref()
                     .map(|t| t
                         .each_ref()
-                        .map(|f| if f.current_health != 0 {
+                        .map(|f| if f.current_health > 0 {
                             format!("{} - {}", f.name(), f.speed_roll)
                         } else {
                             String::new()
@@ -111,7 +133,7 @@ impl<'a, const TEAM_SIZE: usize> Fight<'a, TEAM_SIZE> {
                 .map(|f| ((0, f), 1))
                 .chain((0..TEAM_SIZE).map(|f| ((1, f), 0)))
             {
-                if self.fighters[f.0][f.1].current_health == 0 {
+                if self.fighters[f.0][f.1].current_health <= 0 {
                     continue;
                 }
 
@@ -163,14 +185,14 @@ impl<'a, const TEAM_SIZE: usize> Fight<'a, TEAM_SIZE> {
             format!(
                 "A roll of {} + {} against {}'s dodge of {}.",
                 hit_roll,
-                attacker.stat(Accuracy),
+                attacker.current_accuracy,
                 defender.name(),
-                defender.stat(Dodge)
+                defender.current_dodge,
             )
         });
 
-        if hit_roll + attacker.stat(Accuracy) >= defender.stat(Dodge) {
-            let crit_bonus = if hit_roll >= 99 - (attacker.raw_stat(Accuracy) * 3) {
+        if hit_roll + attacker.current_accuracy >= defender.current_dodge {
+            let crit_bonus = if hit_roll >= 999 - (attacker.raw_stat(Accuracy) * 20) {
                 logger(&|| "It's a crit!".into());
                 2
             } else {
@@ -179,24 +201,49 @@ impl<'a, const TEAM_SIZE: usize> Fight<'a, TEAM_SIZE> {
 
             let damage_roll = D20.sample(&mut self.rng);
             let damage = std::cmp::max(
-                1,
-                ((damage_roll + attacker.stat(Attack)) * crit_bonus)
-                    .saturating_sub(defender.stat(Defense)),
+                10,
+                ((damage_roll + attacker.current_attack) * crit_bonus)
+                    .saturating_sub(defender.current_defense),
             );
             logger(&|| {
                 format!(
                     "A roll of {} + {} against a defense of {} means {} damage.",
                     damage_roll * crit_bonus,
-                    attacker.stat(Attack) * crit_bonus,
-                    defender.stat(Defense),
+                    attacker.current_attack * crit_bonus,
+                    defender.current_defense,
                     damage
                 )
             });
 
             defender.current_health = defender.current_health.saturating_sub(damage);
 
-            if defender.current_health == 0 {
-                logger(&|| format!("{} goes down!", defender.name(),));
+            if defender.current_health <= 0 {
+                defender.current_health = 0;
+                logger(&|| format!("{} goes down!", defender.name()));
+                for i in 1..=10 {
+                    if D50.sample(&mut self.rng) + defender.stat(Conviction)
+                        > 50 + defender.knockdown_count
+                        && defender.knockdown_count != 1
+                    {
+                        defender.knockdown_count += 1;
+                        defender.current_attack += defender.stat(Conviction) * 4;
+                        defender.current_defense += defender.stat(Conviction) * 4;
+                        defender.current_speed += defender.stat(Conviction) * 4;
+                        defender.current_accuracy += defender.stat(Conviction) * 10;
+                        defender.current_dodge += defender.stat(Conviction) * 10;
+                        defender.current_health = 200 * defender.stat(Conviction);
+                        logger(&|| {
+                            format!(
+                                "{} gets back up! They now have {} health.",
+                                defender.name(),
+                                defender.current_health
+                            )
+                        });
+                        break;
+                    } else {
+                        logger(&|| format!("{}!", i));
+                    }
+                }
             } else {
                 logger(&|| {
                     format!(
@@ -223,5 +270,5 @@ impl<'a, const TEAM_SIZE: usize> Fight<'a, TEAM_SIZE> {
 }
 
 fn do_speed_roll(fi: &mut FightFighter, rng: &mut SmallRng) {
-    fi.speed_roll = std::cmp::max(1, D14.sample(rng).saturating_sub(fi.stat(Speed)));
+    fi.speed_roll = std::cmp::max(1, D14.sample(rng).saturating_sub(fi.current_speed));
 }

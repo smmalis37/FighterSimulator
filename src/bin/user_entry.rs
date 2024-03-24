@@ -10,7 +10,7 @@ use std::io::{stdin, Write};
 use std::str::FromStr;
 
 pub fn main() {
-    const TEAM_SIZE: usize = 2;
+    const TEAM_SIZE: usize = 1;
     println!("Team size is {}.", TEAM_SIZE);
 
     let t1 = [(); TEAM_SIZE].map(|_| {
@@ -64,8 +64,9 @@ fn get_fighter() -> Fighter {
         let speed = get_value("Enter the points spent on the fighter's speed:");
         let accuracy = get_value("Enter the points spent on the fighter's accuracy:");
         let dodge = get_value("Enter the points spent on the fighter's dodge:");
+        let conviction = get_value("Enter the points spent on the fighter's conviction:");
 
-        let fighter = Fighter::new(name, health, attack, defense, speed, accuracy, dodge);
+        let fighter = Fighter::new(name, health, attack, defense, speed, accuracy, dodge, conviction);
 
         if fighter.validate(true) {
             break fighter;
