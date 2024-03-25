@@ -34,7 +34,7 @@ impl<'a, const TEAM_SIZE: usize> Fight<'a, TEAM_SIZE> {
         loop {
             self.run_tick(&mut logger);
             for (a, d) in [(0, 1), (1, 0)] {
-                if self.fighters[d].iter().all(|f| f.stat(Stat::Health) == 0) {
+                if self.fighters[d].iter().all(|f| !f.is_alive()) {
                     logger(&|| {
                         format!(
                             "The fight is over! Remaining healths: {}",

@@ -4,7 +4,7 @@ use rayon::prelude::*;
 use std::{sync::atomic::*, time::Instant};
 
 fn main() {
-    const FIGHT_COUNT: usize = 10;
+    const FIGHT_COUNT: usize = 2;
 
     let time = Instant::now();
     let fighters = gen_fighters();
