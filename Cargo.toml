@@ -5,7 +5,9 @@ authors = ["Steven Malis <smmalis37@gmail.com>"]
 edition = "2021"
 
 [dependencies]
+arrayvec = "0.7"
 enum-map = { version = "2.7", features = ["serde"] }
+itertools = "0.12"
 fastrand = "2.0"
 rayon = "1.9"
 

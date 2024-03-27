@@ -22,7 +22,7 @@ fn main() {
         let mut rng = Rng::new();
         for (i2, f2) in (i1 + 1..fighters.len()).map(|i2| (i2, &fighters[i2])) {
             for _ in 0..FIGHT_COUNT {
-                let fight = Fight::new([f1], [f2], rng.fork().get_seed());
+                let fight = Fight::new([f1].into(), [f2].into(), rng.fork().get_seed());
                 let winner = fight.run(|_| {});
 
                 if std::ptr::eq(winner, f1) {

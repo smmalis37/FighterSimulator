@@ -1,23 +1,27 @@
-use fastrand::Rng;
-
 use crate::fight_fighter::FightFighter;
 use crate::fighter::*;
 use crate::stats::*;
+use arrayvec::ArrayVec;
+use fastrand::Rng;
+use itertools::Itertools;
 
 #[derive(Debug)]
-pub struct Fight<'a, const TEAM_SIZE: usize> {
-    fighters: [[FightFighter<'a>; TEAM_SIZE]; 2],
+pub struct Fight<'a, const MAX_TEAM_SIZE: usize> {
+    fighters: [ArrayVec<FightFighter<'a>, MAX_TEAM_SIZE>; 2],
     rng: Rng,
 }
 
-impl<'a, const TEAM_SIZE: usize> Fight<'a, TEAM_SIZE> {
+impl<'a, const MAX_TEAM_SIZE: usize> Fight<'a, MAX_TEAM_SIZE> {
     pub fn new(
-        t1: [&'a Fighter; TEAM_SIZE],
-        t2: [&'a Fighter; TEAM_SIZE],
+        t1: ArrayVec<&'a Fighter, MAX_TEAM_SIZE>,
+        t2: ArrayVec<&'a Fighter, MAX_TEAM_SIZE>,
         seed: u64,
-    ) -> Fight<'a, TEAM_SIZE> {
+    ) -> Fight<'a, MAX_TEAM_SIZE> {
         let mut this = Self {
-            fighters: [t1.map(FightFighter::new), t2.map(FightFighter::new)],
+            fighters: [
+                t1.into_iter().map(FightFighter::new).collect(),
+                t2.into_iter().map(FightFighter::new).collect(),
+            ],
             rng: Rng::with_seed(seed),
         };
 
@@ -39,7 +43,7 @@ impl<'a, const TEAM_SIZE: usize> Fight<'a, TEAM_SIZE> {
                         format!(
                             "The fight is over! Remaining healths: {}",
                             self.fighters[a]
-                                .each_ref()
+                                .iter()
                                 .map(|f| format!("{} - {}", f.name(), f.stat(Stat::Health)))
                                 .join(", ")
                         )
@@ -59,7 +63,7 @@ impl<'a, const TEAM_SIZE: usize> Fight<'a, TEAM_SIZE> {
                 self.fighters
                     .each_ref()
                     .map(|team| team
-                        .each_ref()
+                        .iter()
                         .map(|fighter| if fighter.is_alive() {
                             format!("{} - {}", fighter.name(), fighter.speed_roll())
                         } else {
@@ -162,7 +166,7 @@ impl<'a, const TEAM_SIZE: usize> Fight<'a, TEAM_SIZE> {
                 for i in 1..=10 {
                     if self.rng.u16(1..=50) + defender.stat(Stat::Conviction)
                         > 50 + defender.knockdown_count()
-                        && defender.knockdown_count() < 1
+                        && defender.knockdown_count() == 1
                     {
                         defender.get_back_up();
                         logger(&|| {

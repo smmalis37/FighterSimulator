@@ -1,43 +1,55 @@
 extern crate fighter_simulator;
 
+use arrayvec::ArrayVec;
 use fastrand::Rng;
 use fighter_simulator::*;
+use itertools::Itertools;
 use std::fs::File;
 use std::io::{stdin, Write};
 use std::str::FromStr;
 
 pub fn main() {
-    const TEAM_SIZE: usize = 1;
-    println!("Team size is {}.", TEAM_SIZE);
+    const MAX_TEAM_SIZE: usize = 5;
 
-    let t1 = [(); TEAM_SIZE].map(|_| {
+    let team_1_size = get_value("How many fighters are on team 1?");
+    let mut t1 = ArrayVec::<_, MAX_TEAM_SIZE>::new();
+
+    for _ in 0..team_1_size {
         let f = get_fighter();
         println!("{} successfully registered.", f.name());
         println!();
-        f
-    });
+        t1.push(f);
+    }
 
     println!("Team 1 successfully registered.");
     println!();
 
-    let t2 = [(); TEAM_SIZE].map(|_| {
+    let team_2_size = get_value("How many fighters are on team 1?");
+    let mut t2 = ArrayVec::<_, MAX_TEAM_SIZE>::new();
+
+    for _ in 0..team_2_size {
         let f = get_fighter();
         println!("{} successfully registered.", f.name());
         println!();
-        f
-    });
+        t2.push(f);
+    }
 
     println!("Team 2 successfully registered.");
     println!();
 
     let filename = format!(
         "{}Vs{}.txt",
-        t1.each_ref().map(|f| f.name().to_string()).join(","),
-        t2.each_ref().map(|f| f.name().to_string()).join(",")
+        t1.iter().map(|f| f.name()).join(","),
+        t2.iter().map(|f| f.name()).join(",")
     );
     let mut file = File::create(filename).expect("Unable to create log file.");
 
-    Fight::new(t1.each_ref(), t2.each_ref(), Rng::new().get_seed()).run(|s_fn| {
+    Fight::<MAX_TEAM_SIZE>::new(
+        t1.iter().collect(),
+        t2.iter().collect(),
+        Rng::new().get_seed(),
+    )
+    .run(|s_fn| {
         let s = s_fn();
         println!("{}", s);
         writeln!(file, "{}", s).expect("Failed to write to log file.");
