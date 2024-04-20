@@ -83,8 +83,12 @@ impl<'a, const MAX_TEAM_SIZE: usize> Fight<'a, MAX_TEAM_SIZE> {
                 .flat_map(|(team_index, team)| {
                     team.iter()
                         .enumerate()
-                        .map(move |(fighter_index, fighter)| {
-                            (team_index, fighter_index, fighter.speed_roll())
+                        .filter_map(move |(fighter_index, fighter)| {
+                            fighter.is_alive().then_some((
+                                team_index,
+                                fighter_index,
+                                fighter.speed_roll(),
+                            ))
                         })
                 })
             {
@@ -143,9 +147,9 @@ impl<'a, const MAX_TEAM_SIZE: usize> Fight<'a, MAX_TEAM_SIZE> {
                 1
             };
 
-            let damage_roll = self.rng.u16(1..=200);
+            let damage_roll = self.rng.u16(1..=100);
             let damage = std::cmp::max(
-                1,
+                10,
                 ((damage_roll + attacker.stat(Stat::Attack)) * crit_bonus)
                     .saturating_sub(defender.stat(Stat::Defense)),
             );
@@ -163,24 +167,6 @@ impl<'a, const MAX_TEAM_SIZE: usize> Fight<'a, MAX_TEAM_SIZE> {
 
             if !defender.is_alive() {
                 logger(&|| format!("{} goes down!", defender.name()));
-                for i in 1..=10 {
-                    if self.rng.u16(1..=50) + defender.stat(Stat::Conviction)
-                        > 50 + defender.knockdown_count()
-                        && defender.knockdown_count() == 1
-                    {
-                        defender.get_back_up();
-                        logger(&|| {
-                            format!(
-                                "{} gets back up! They now have {} health.",
-                                defender.name(),
-                                defender.stat(Stat::Health)
-                            )
-                        });
-                        break;
-                    } else {
-                        logger(&|| format!("{}!", i));
-                    }
-                }
             } else {
                 logger(&|| {
                     format!(
@@ -192,6 +178,14 @@ impl<'a, const MAX_TEAM_SIZE: usize> Fight<'a, MAX_TEAM_SIZE> {
             }
         } else {
             logger(&|| "Miss!".into());
+        }
+
+        if defender.stat(Stat::Health) < (defender.starting_value(Stat::Health) / 100) * 30
+            && defender.stat(Stat::Conviction) > 0
+            && defender.firedup() < 1
+        {
+            defender.get_fired_up();
+            logger(&|| format!("{} is fired up!", defender.name(),));
         }
 
         let attacker_speed_roll = attacker.speed_roll();

@@ -8,6 +8,7 @@ pub(crate) struct FightFighter<'a> {
     mods: EnumMap<Stat, SignedStatValue>,
     speed_roll: StatValue,
     knockdown_count: StatValue,
+    firedup: StatValue,
 }
 
 impl<'a> FightFighter<'a> {
@@ -17,6 +18,7 @@ impl<'a> FightFighter<'a> {
             mods: EnumMap::default(),
             speed_roll: 0,
             knockdown_count: 0,
+            firedup: 0,
         }
     }
 
@@ -39,6 +41,14 @@ impl<'a> FightFighter<'a> {
         }
     }
 
+    pub(crate) fn starting_value(&self, stat: Stat) -> StatValue {
+        stat.effective_value(self.fighter.raw_stat(stat))
+    }
+
+    pub(crate) fn firedup(&self) -> StatValue {
+        self.firedup
+    }
+
     pub(crate) fn knockdown_count(&self) -> StatValue {
         self.knockdown_count
     }
@@ -53,29 +63,32 @@ impl<'a> FightFighter<'a> {
     }
 
     pub(crate) fn do_speed_roll(&mut self, rng: &mut Rng) {
-        self.speed_roll +=
-            std::cmp::max(1, rng.u16(1..=140).saturating_sub(self.stat(Stat::Speed)));
+        self.speed_roll += std::cmp::max(
+            1,
+            rng.u16(1..=35_u16.saturating_sub(self.stat(Stat::Speed))),
+        );
     }
 
     pub(crate) fn end_turn(&mut self, attacker_speed_roll: StatValue) {
         self.speed_roll = self.speed_roll.saturating_sub(attacker_speed_roll);
     }
 
-    pub(crate) fn get_back_up(&mut self) {
+    pub(crate) fn get_fired_up(&mut self) {
         self.mods[Stat::Attack] =
-            self.mods[Stat::Attack].saturating_add_unsigned(self.stat(Stat::Conviction) * 4);
+            self.mods[Stat::Attack].saturating_add_unsigned(self.stat(Stat::Conviction) * 5);
         self.mods[Stat::Defense] =
-            self.mods[Stat::Defense].saturating_add_unsigned(self.stat(Stat::Conviction) * 4);
+            self.mods[Stat::Defense].saturating_add_unsigned(self.stat(Stat::Conviction) * 5);
         self.mods[Stat::Speed] =
-            self.mods[Stat::Speed].saturating_add_unsigned(self.stat(Stat::Conviction) * 4);
+            self.mods[Stat::Speed].saturating_add_unsigned(self.stat(Stat::Conviction) * 2);
         self.mods[Stat::Accuracy] =
             self.mods[Stat::Accuracy].saturating_add_unsigned(self.stat(Stat::Conviction) * 10);
         self.mods[Stat::Dodge] =
             self.mods[Stat::Dodge].saturating_add_unsigned(self.stat(Stat::Conviction) * 10);
 
-        self.mods[Stat::Health] = ((200 * self.stat(Stat::Conviction)) as SignedStatValue)
-            .saturating_sub_unsigned(
-                Stat::Health.effective_value(self.fighter.raw_stat(Stat::Health)),
-            );
+        self.firedup += 1;
+        //self.mods[Stat::Health] = (1 as SignedStatValue)
+        //    .saturating_sub_unsigned(
+        //        Stat::Health.effective_value(self.fighter.raw_stat(Stat::Health)),
+        //    );
     }
 }

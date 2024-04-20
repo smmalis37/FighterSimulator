@@ -18,16 +18,16 @@ pub enum Stat {
 impl Stat {
     pub(crate) const fn effective_value(self, x: StatValue) -> StatValue {
         match self {
-            Stat::Health => (x * 325) + 1000,
-            Stat::Attack => x * 15,
-            Stat::Defense => x * 15,
-            Stat::Speed => x * 8,
-            Stat::Accuracy => x * 100,
-            Stat::Dodge => (x * 100) + 250,
+            Stat::Health => (x * 200) + 1000,
+            Stat::Attack => x * 8,
+            Stat::Defense => x * 8,
+            Stat::Speed => x * 3,
+            Stat::Accuracy => x * 80,
+            Stat::Dodge => (x * 90) + 250,
             Stat::Conviction => x,
         }
     }
 }
 
-pub const TOTAL_POINTS: StatValue = 18;
+pub const TOTAL_POINTS: StatValue = 15;
 pub const MAX_STAT_POINTS: StatValue = 5;
