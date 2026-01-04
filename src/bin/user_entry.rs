@@ -1,5 +1,3 @@
-#![feature(array_methods)]
-
 extern crate fighter_simulator;
 
 use fighter_simulator::*;
@@ -51,7 +49,7 @@ fn get_fighter() -> Fighter {
     let f = loop {
         let name = get_value("Enter the fighter's name:");
 
-        if let Some(f) = File::open(&format!("{}.txt", name))
+        if let Some(f) = File::open(format!("{}.txt", name))
             .ok()
             .and_then(|f| serde_json::from_reader(f).ok())
         {
@@ -70,7 +68,7 @@ fn get_fighter() -> Fighter {
         if fighter.validate(true) {
             break fighter;
         } else {
-            if loop {
+            let ok = loop {
                 let mut buf = String::new();
                 println!("Ok? (y/n)");
                 stdin().read_line(&mut buf).unwrap();
@@ -81,13 +79,14 @@ fn get_fighter() -> Fighter {
                 } else if yn == "n" {
                     break false;
                 }
-            } {
+            };
+            if ok {
                 break fighter;
             }
         }
     };
 
-    serde_json::to_writer(File::create(&format!("{}.txt", f.name())).unwrap(), &f).unwrap();
+    serde_json::to_writer(File::create(format!("{}.txt", f.name())).unwrap(), &f).unwrap();
 
     f
 }

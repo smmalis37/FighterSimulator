@@ -57,10 +57,7 @@ impl<'a, const TEAM_SIZE: usize> Fight<'a, TEAM_SIZE> {
         seed: u64,
     ) -> Fight<'a, TEAM_SIZE> {
         let mut f = Self {
-            fighters: [
-                t1.map(|f| FightFighter::new(f)),
-                t2.map(|f| FightFighter::new(f)),
-            ],
+            fighters: [t1.map(FightFighter::new), t2.map(FightFighter::new)],
             rng: SmallRng::seed_from_u64(seed),
         };
 
