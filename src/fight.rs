@@ -1,4 +1,4 @@
-use rand::distributions::Uniform;
+use rand::distr::Uniform;
 use rand::prelude::*;
 use static_init::dynamic;
 
@@ -7,15 +7,15 @@ use crate::stats::Stat::*;
 use crate::stats::*;
 
 #[dynamic]
-static D6: Uniform<StatValue> = Uniform::new_inclusive(1, 6);
+static D6: Uniform<StatValue> = Uniform::new_inclusive(1, 6).unwrap();
 #[dynamic]
-static D10: Uniform<StatValue> = Uniform::new_inclusive(1, 10);
+static D10: Uniform<StatValue> = Uniform::new_inclusive(1, 10).unwrap();
 #[dynamic]
-static D14: Uniform<StatValue> = Uniform::new_inclusive(1, 14);
+static D14: Uniform<StatValue> = Uniform::new_inclusive(1, 14).unwrap();
 #[dynamic]
-static D20: Uniform<StatValue> = Uniform::new_inclusive(1, 20);
+static D20: Uniform<StatValue> = Uniform::new_inclusive(1, 20).unwrap();
 #[dynamic]
-static D100: Uniform<StatValue> = Uniform::new_inclusive(1, 100);
+static D100: Uniform<StatValue> = Uniform::new_inclusive(1, 100).unwrap();
 
 #[derive(Debug)]
 struct FightFighter<'a> {
@@ -129,7 +129,7 @@ impl<'a, const TEAM_SIZE: usize> Fight<'a, TEAM_SIZE> {
                     {
                         std::cmp::Ordering::Less => {}
                         std::cmp::Ordering::Equal => {
-                            if self.rng.gen() {
+                            if self.rng.random() {
                                 a = Some(f);
                                 def_team = Some(dt);
                             }
