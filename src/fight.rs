@@ -17,6 +17,7 @@ struct FightFighter<'a> {
     injuries: EnumMap<Target, i16>,
     warnings: u8,
     knockdowns: i16,
+    hearty_used: bool,
 }
 
 impl<'a> FightFighter<'a> {
@@ -27,6 +28,7 @@ impl<'a> FightFighter<'a> {
             injuries: EnumMap::default(),
             warnings: 0,
             knockdowns: 0,
+            hearty_used: false,
         }
     }
 }
@@ -55,10 +57,19 @@ impl<'a> Fight<'a> {
     }
 
     pub fn run<L: FnMut(&dyn Fn() -> String)>(mut self, mut logger: L) -> &'a Fighter {
+        let mut initiative_odds = 0.5;
+        if matches!(self.f1.attack(), AttackDie::Brawler) {
+            initiative_odds += 1.0 / 12.0;
+        }
+        if matches!(self.f2.attack(), AttackDie::Brawler) {
+            initiative_odds -= 1.0 / 12.0;
+        }
+        let initiative = Bernoulli::new(initiative_odds).unwrap();
+
         for round in 0..5 {
             logger(&|| format!("Round {}", round + 1));
             for exchange in 0..6 {
-                if let Some(fighter) = self.run_exchange(&mut logger, exchange) {
+                if let Some(fighter) = self.run_exchange(&mut logger, exchange, &initiative) {
                     return fighter;
                 }
             }
@@ -86,8 +97,9 @@ impl<'a> Fight<'a> {
         &mut self,
         logger: &mut L,
         exchange: u8,
+        initiative: &Bernoulli,
     ) -> Option<&'a Fighter> {
-        let (attacker, defender) = if self.rng.random() {
+        let (attacker, defender) = if initiative.sample(&mut self.rng) {
             (&mut self.f1, &mut self.f2)
         } else {
             (&mut self.f2, &mut self.f1)
@@ -104,7 +116,11 @@ impl<'a> Fight<'a> {
         let mut combo_count = None;
         let mut dirty_hit = false;
         loop {
-            if combo_count.is_none() && self.rng.sample(*DIRTY_FIGHTING) {
+            if combo_count.is_none()
+                && !dirty_hit
+                && !matches!(attacker.attack(), AttackDie::DirtyFighter)
+                && self.rng.sample(*DIRTY_FIGHTING)
+            {
                 logger(&|| format!("{} is fighting dirty!", attacker.name()));
 
                 let dead = Self::do_damage(logger, defender, 1);
@@ -140,7 +156,15 @@ impl<'a> Fight<'a> {
                     continue;
                 }
                 AttackResult::Dirty => {
-                    todo!()
+                    assert!(matches!(attacker.attack(), AttackDie::DirtyFighter));
+                    logger(&|| format!("{} is fighting dirty!", attacker.name()));
+                    logger(&|| "The ref missed it!".to_string());
+                    dirty_hit = true;
+
+                    if Self::do_damage(logger, defender, 2) {
+                        return Some(attacker.fighter);
+                    }
+                    continue;
                 }
             }
             let target = if self.rng.random() {
@@ -222,7 +246,9 @@ impl<'a> Fight<'a> {
                 return None;
             }
 
-            if matches!(attack, AttackResult::Special(_)) && matches!(defense, DefenceResult::Open)
+            if matches!(attack, AttackResult::Special(_))
+                && (matches!(defense, DefenceResult::Open)
+                    || matches!(attacker.attack(), AttackDie::Slugger))
             {
                 logger(&|| {
                     format!(
@@ -233,7 +259,16 @@ impl<'a> Fight<'a> {
                 defender.injuries[target] += hit_count;
             }
 
-            let total_damage = (damage + def + defender.injuries[target]) * hit_count;
+            let mut total_damage = (damage + def + defender.injuries[target]) * hit_count;
+            if matches!(attacker.attack(), AttackDie::Swarmer) && hit_count > 1 {
+                total_damage += hit_count;
+            }
+            if matches!(defender.attack(), AttackDie::Reckless) {
+                total_damage += hit_count;
+            }
+            if matches!(defender.attack(), AttackDie::Jobber) {
+                total_damage += 2;
+            }
             if Self::do_damage(logger, defender, total_damage) {
                 return Some(attacker.fighter);
             }
@@ -250,6 +285,19 @@ impl<'a> Fight<'a> {
 
                     logger(&|| format!("{} gets back up!", defender.name()));
                     return None;
+                } else if matches!(defender.attack(), AttackDie::Hearty) && !defender.hearty_used {
+                    defender.hearty_used = true;
+                    for count in 1..=9 {
+                        logger(&|| format!("{}!", count));
+                    }
+                    logger(&|| format!("{} gets back up with a hearty spirit!", defender.name()));
+                    return None;
+                } else if matches!(defender.attack(), AttackDie::Jobber) {
+                    for count in 1..=9 {
+                        logger(&|| format!("{}!", count));
+                    }
+                    logger(&|| format!("{} gets back up!", defender.name()));
+                    return None;
                 } else {
                     for count in 1..=10 {
                         logger(&|| format!("{}!", count));
@@ -260,7 +308,9 @@ impl<'a> Fight<'a> {
             } else if exchange_damage >= 7 {
                 logger(&|| format!("{} looks dazed from the exchange!", defender.name()));
                 let clinch_roll = self.rng.sample(*D6);
-                if clinch_roll >= 5 {
+                if clinch_roll >= 5
+                    || (matches!(defender.attack(), AttackDie::Boxer) && clinch_roll >= 4)
+                {
                     logger(&|| format!("{} clinches to recover!", defender.name()));
                     return None;
                 }
