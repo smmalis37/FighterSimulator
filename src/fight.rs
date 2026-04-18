@@ -245,9 +245,16 @@ impl<'a> Fight<'a> {
                     defender.knockdowns += 1;
                     let down_roll = self.rng.sample(*D6) + self.rng.sample(*D6);
                     if down_roll >= 3 + (defender.knockdowns * 2) {
+                        for count in 1..(12 - down_roll) {
+                            logger(&|| format!("{}!", count));
+                        }
+
                         logger(&|| format!("{} gets back up!", defender.name()));
                         return None;
                     } else {
+                        for count in 1..=10 {
+                            logger(&|| format!("{}!", count));
+                        }
                         logger(&|| format!("{} is counted out!", defender.name()));
                         return Some(attacker.fighter);
                     }
