@@ -1,7 +1,7 @@
+use enum_map::Enum;
 use fighter_simulator::*;
-use rand::{rngs::SmallRng, Rng, SeedableRng};
+use rand::{RngExt, SeedableRng, rngs::SmallRng};
 use rayon::prelude::*;
-
 use std::{sync::atomic::*, time::Instant};
 
 fn main() {
@@ -20,10 +20,10 @@ fn main() {
     println!("Simulating {} fighters.", fighters.len());
 
     fighters.par_iter().enumerate().for_each(|(i1, f1)| {
-        let mut rng = SmallRng::from_os_rng();
+        let mut rng = SmallRng::from_rng(&mut rand::rng());
         for (i2, f2) in (i1 + 1..fighters.len()).map(|i2| (i2, &fighters[i2])) {
             for _ in 0..FIGHT_COUNT {
-                let fight = Fight::new([f1], [f2], rng.random());
+                let fight = Fight::new(f1, f2, rng.random());
                 let winner = fight.run(|_| {});
 
                 if std::ptr::eq(winner, f1) {
@@ -63,26 +63,17 @@ fn main() {
 fn gen_fighters() -> Vec<Fighter> {
     let mut fighters = Vec::new();
 
-    for health in 0..=MAX_STAT_POINTS {
-        for attack in 0..=MAX_STAT_POINTS {
-            for defense in 0..=MAX_STAT_POINTS {
-                for speed in 0..=MAX_STAT_POINTS {
-                    for accuracy in 0..=MAX_STAT_POINTS {
-                        for dodge in 0..=MAX_STAT_POINTS {
-                            let name = format!(
-                                "{},{},{},{},{},{}",
-                                health, attack, defense, speed, accuracy, dodge
-                            );
+    for attack in 0..=AttackDie::LENGTH {
+        for defense in 0..=DefenceDie::LENGTH {
+            let name = format!("{},{}", attack, defense);
 
-                            let fighter =
-                                Fighter::new(name, health, attack, defense, speed, accuracy, dodge);
-                            if fighter.validate(false) {
-                                fighters.push(fighter);
-                            }
-                        }
-                    }
-                }
-            }
+            let fighter = Fighter::new(
+                name,
+                AttackDie::from_usize(attack),
+                DefenceDie::from_usize(defense),
+            );
+
+            fighters.push(fighter);
         }
     }
 

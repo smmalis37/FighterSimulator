@@ -1,28 +1,78 @@
 use enum_map::Enum;
+use rand::seq::IndexedRandom;
 use serde::{Deserialize, Serialize};
 
-pub type StatValue = u16;
-
-#[derive(Debug, Enum, Copy, Clone, Serialize, Deserialize)]
-pub enum Stat {
-    Health,
-    Attack,
-    Defense,
-    Speed,
-    Accuracy,
-    Dodge,
+#[derive(Enum, Debug, Copy, Clone, Serialize, Deserialize)]
+pub enum AttackDie {
+    Boxer,
+    DirtyFighter,
+    Swarmer,
+    Brawler,
+    Reckless,
+    Hearty,
+    Slugger,
+    Jobber,
 }
 
-pub(crate) const fn stat_value(stat: Stat, x: StatValue) -> StatValue {
-    match stat {
-        Stat::Health => (x * 20) + 100,
-        Stat::Attack => (x * 2) + 1,
-        Stat::Defense => x * 2,
-        Stat::Speed => x,
-        Stat::Accuracy => x * 10,
-        Stat::Dodge => (x * 12) + 25,
+#[derive(Copy, Clone)]
+pub enum AttackResult {
+    Damage(i16),
+    Combo,
+    Special(i16),
+}
+
+impl AttackDie {
+    pub fn roll<R: rand::Rng>(&self, rng: &mut R) -> AttackResult {
+        *[
+            AttackResult::Damage(1),
+            AttackResult::Damage(1),
+            AttackResult::Damage(2),
+            AttackResult::Damage(2),
+            AttackResult::Combo,
+            AttackResult::Special(3),
+        ]
+        .choose(rng)
+        .unwrap()
     }
 }
 
-pub const TOTAL_POINTS: StatValue = 15;
-pub const MAX_STAT_POINTS: StatValue = 5;
+#[derive(Enum, Debug, Copy, Clone, Serialize, Deserialize)]
+pub enum DefenceDie {
+    PeekABoo,
+    PhillyShell,
+    CrossArms,
+    LoosyGoosy,
+    PunchingBag,
+}
+
+#[derive(Copy, Clone)]
+pub enum DefenceResult {
+    Open,
+    GuardUp(i16, i16),
+    GuardDown(i16, i16),
+    Dodge,
+    Counter,
+}
+
+impl DefenceDie {
+    pub fn roll<R: rand::Rng>(&self, rng: &mut R) -> DefenceResult {
+        *[
+            DefenceResult::Open,
+            DefenceResult::GuardUp(-1, 1),
+            DefenceResult::GuardDown(-1, 1),
+            DefenceResult::GuardUp(-1, 1),
+            DefenceResult::GuardDown(-2, 2),
+            DefenceResult::GuardUp(-2, 2),
+            DefenceResult::Dodge,
+            DefenceResult::Counter,
+        ]
+        .choose(rng)
+        .unwrap()
+    }
+}
+
+#[derive(Enum, Copy, Clone, Debug, Serialize, Deserialize)]
+pub enum Target {
+    Head,
+    Body,
+}
