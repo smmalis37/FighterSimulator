@@ -19,18 +19,42 @@ pub enum AttackResult {
     Damage(i16),
     Combo,
     Special(i16),
+    Dirty,
 }
 
 impl AttackDie {
     pub fn roll<R: rand::Rng>(&self, rng: &mut R) -> AttackResult {
-        *[
-            AttackResult::Damage(1),
-            AttackResult::Damage(1),
-            AttackResult::Damage(2),
-            AttackResult::Damage(2),
-            AttackResult::Combo,
-            AttackResult::Special(3),
-        ]
+        *match self {
+            AttackDie::Boxer
+            | AttackDie::Swarmer
+            | AttackDie::Brawler
+            | AttackDie::Hearty
+            | AttackDie::Slugger
+            | AttackDie::Jobber => &[
+                AttackResult::Damage(1),
+                AttackResult::Damage(1),
+                AttackResult::Damage(2),
+                AttackResult::Damage(2),
+                AttackResult::Combo,
+                AttackResult::Special(3),
+            ],
+            AttackDie::DirtyFighter => &[
+                AttackResult::Damage(1),
+                AttackResult::Damage(1),
+                AttackResult::Damage(2),
+                AttackResult::Dirty,
+                AttackResult::Combo,
+                AttackResult::Special(3),
+            ],
+            AttackDie::Reckless => &[
+                AttackResult::Damage(1),
+                AttackResult::Damage(2),
+                AttackResult::Damage(2),
+                AttackResult::Damage(3),
+                AttackResult::Combo,
+                AttackResult::Special(4),
+            ],
+        }
         .choose(rng)
         .unwrap()
     }
@@ -51,21 +75,63 @@ pub enum DefenceResult {
     GuardUp(i16, i16),
     GuardDown(i16, i16),
     Dodge,
-    Counter,
+    Counter(i16),
 }
 
 impl DefenceDie {
     pub fn roll<R: rand::Rng>(&self, rng: &mut R) -> DefenceResult {
-        *[
-            DefenceResult::Open,
-            DefenceResult::GuardUp(-1, 1),
-            DefenceResult::GuardDown(-1, 1),
-            DefenceResult::GuardUp(-1, 1),
-            DefenceResult::GuardDown(-2, 2),
-            DefenceResult::GuardUp(-2, 2),
-            DefenceResult::Dodge,
-            DefenceResult::Counter,
-        ]
+        *match self {
+            DefenceDie::PeekABoo => &[
+                DefenceResult::Open,
+                DefenceResult::GuardUp(-1, 1),
+                DefenceResult::GuardDown(-1, 1),
+                DefenceResult::GuardUp(-1, 1),
+                DefenceResult::GuardDown(-2, 2),
+                DefenceResult::GuardUp(-2, 2),
+                DefenceResult::Dodge,
+                DefenceResult::Counter(1),
+            ],
+            DefenceDie::PhillyShell => &[
+                DefenceResult::Open,
+                DefenceResult::GuardDown(-1, 1),
+                DefenceResult::GuardUp(-1, 2),
+                DefenceResult::GuardDown(-1, 1),
+                DefenceResult::GuardUp(-2, 2),
+                DefenceResult::GuardDown(-2, 2),
+                DefenceResult::Dodge,
+                DefenceResult::Counter(2),
+            ],
+            DefenceDie::CrossArms => &[
+                DefenceResult::Open,
+                DefenceResult::GuardUp(-1, 2),
+                DefenceResult::GuardDown(-2, 1),
+                DefenceResult::GuardUp(-1, 2),
+                DefenceResult::GuardDown(-2, 1),
+                DefenceResult::GuardUp(-2, 2),
+                DefenceResult::Dodge,
+                DefenceResult::Counter(1),
+            ],
+            DefenceDie::LoosyGoosy => &[
+                DefenceResult::Open,
+                DefenceResult::GuardUp(-2, 2),
+                DefenceResult::GuardDown(-2, 2),
+                DefenceResult::GuardUp(-2, 2),
+                DefenceResult::GuardDown(-3, 3),
+                DefenceResult::GuardUp(-3, 3),
+                DefenceResult::Dodge,
+                DefenceResult::Counter(1),
+            ],
+            DefenceDie::PunchingBag => &[
+                DefenceResult::Open,
+                DefenceResult::GuardUp(-1, 2),
+                DefenceResult::GuardDown(-1, 2),
+                DefenceResult::GuardUp(-1, 2),
+                DefenceResult::GuardDown(-2, 2),
+                DefenceResult::GuardUp(-2, 2),
+                DefenceResult::Dodge,
+                DefenceResult::Counter(1),
+            ],
+        }
         .choose(rng)
         .unwrap()
     }

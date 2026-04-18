@@ -137,6 +137,9 @@ impl<'a> Fight<'a> {
                         *combo_count.get_or_insert(1) += 1;
                         continue;
                     }
+                    AttackResult::Dirty => {
+                        todo!()
+                    }
                 }
                 let target = if self.rng.random() {
                     Target::Head
@@ -190,10 +193,10 @@ impl<'a> Fight<'a> {
                             logger(&|| format!("{} dodges the attack!", defender.name()));
                             return None;
                         }
-                        DefenceResult::Counter => {
+                        DefenceResult::Counter(multiplier) => {
                             if self.rng.random() {
                                 logger(&|| format!("{} counters the attack!", defender.name()));
-                                if Self::do_damage(logger, attacker, 2) {
+                                if Self::do_damage(logger, attacker, 2 * multiplier) {
                                     return Some(defender.fighter);
                                 }
                                 return None;
