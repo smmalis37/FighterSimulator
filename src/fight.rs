@@ -128,143 +128,141 @@ impl<'a> Fight<'a> {
                 if dead {
                     return Some(attacker.fighter);
                 }
+                continue;
+            }
+
+            let mut damage = 0;
+            let attack = attacker.attack().roll(&mut self.rng);
+            match attack {
+                AttackResult::Damage(d) | AttackResult::Special(d) => damage += d,
+                AttackResult::Combo => {
+                    *combo_count.get_or_insert(1) += 1;
+                    continue;
+                }
+                AttackResult::Dirty => {
+                    todo!()
+                }
+            }
+            let target = if self.rng.random() {
+                Target::Head
             } else {
-                let mut damage = 0;
-                let attack = attacker.attack().roll(&mut self.rng);
-                match attack {
-                    AttackResult::Damage(d) | AttackResult::Special(d) => damage += d,
-                    AttackResult::Combo => {
-                        *combo_count.get_or_insert(1) += 1;
-                        continue;
-                    }
-                    AttackResult::Dirty => {
-                        todo!()
-                    }
-                }
-                let target = if self.rng.random() {
-                    Target::Head
-                } else {
-                    Target::Body
-                };
-                if let Some(combo) = combo_count {
-                    logger(&|| {
-                        format!(
-                            "A {} damage, {} hit combo to the {:?}!",
-                            damage, combo, target
-                        )
-                    });
-                } else {
-                    logger(&|| format!("A {} damage punch to the {:?}!", damage, target));
-                }
-                let hit_count = combo_count.take().unwrap_or(1);
+                Target::Body
+            };
+            if let Some(combo) = combo_count {
+                logger(&|| {
+                    format!(
+                        "A {} damage, {} hit combo to the {:?}!",
+                        damage, combo, target
+                    )
+                });
+            } else {
+                logger(&|| format!("A {} damage punch to the {:?}!", damage, target));
+            }
+            let hit_count = combo_count.take().unwrap_or(1);
 
-                let (defense, def) = if dirty_hit {
-                    dirty_hit = false;
-                    logger(&|| format!("{}'s guard is down from the dirty hit!", defender.name()));
-                    (DefenceResult::Open, 3)
-                } else {
-                    let defense = defender.defence().roll(&mut self.rng);
-                    let def = match defense {
-                        DefenceResult::Open => {
-                            logger(&|| format!("{} is wide open!", defender.name()));
-                            3
+            let (defense, def) = if dirty_hit {
+                dirty_hit = false;
+                logger(&|| format!("{}'s guard is down from the dirty hit!", defender.name()));
+                (DefenceResult::Open, 3)
+            } else {
+                let defense = defender.defence().roll(&mut self.rng);
+                let def = match defense {
+                    DefenceResult::Open => {
+                        logger(&|| format!("{} is wide open!", defender.name()));
+                        3
+                    }
+                    DefenceResult::GuardUp(block, miss) => match target {
+                        Target::Head => {
+                            logger(&|| format!("{} blocks the attack!", defender.name()));
+                            block
                         }
-                        DefenceResult::GuardUp(block, miss) => match target {
-                            Target::Head => {
-                                logger(&|| format!("{} blocks the attack!", defender.name()));
-                                block
+                        Target::Body => {
+                            logger(&|| format!("{} mistakenly guards high!", defender.name()));
+                            miss
+                        }
+                    },
+                    DefenceResult::GuardDown(block, miss) => match target {
+                        Target::Head => {
+                            logger(&|| format!("{} mistakenly guards low!", defender.name()));
+                            miss
+                        }
+                        Target::Body => {
+                            logger(&|| format!("{} blocks the attack!", defender.name()));
+                            block
+                        }
+                    },
+                    DefenceResult::Dodge => {
+                        logger(&|| format!("{} dodges the attack!", defender.name()));
+                        return None;
+                    }
+                    DefenceResult::Counter(multiplier) => {
+                        if self.rng.random() {
+                            logger(&|| format!("{} counters the attack!", defender.name()));
+                            if Self::do_damage(logger, attacker, 2 * multiplier) {
+                                return Some(defender.fighter);
                             }
-                            Target::Body => {
-                                logger(&|| format!("{} mistakenly guards high!", defender.name()));
-                                miss
-                            }
-                        },
-                        DefenceResult::GuardDown(block, miss) => match target {
-                            Target::Head => {
-                                logger(&|| format!("{} mistakenly guards low!", defender.name()));
-                                miss
-                            }
-                            Target::Body => {
-                                logger(&|| format!("{} blocks the attack!", defender.name()));
-                                block
-                            }
-                        },
-                        DefenceResult::Dodge => {
-                            logger(&|| format!("{} dodges the attack!", defender.name()));
                             return None;
+                        } else {
+                            logger(&|| format!("{} tries to counter but whiffs!", defender.name()));
+                            2
                         }
-                        DefenceResult::Counter(multiplier) => {
-                            if self.rng.random() {
-                                logger(&|| format!("{} counters the attack!", defender.name()));
-                                if Self::do_damage(logger, attacker, 2 * multiplier) {
-                                    return Some(defender.fighter);
-                                }
-                                return None;
-                            } else {
-                                logger(&|| {
-                                    format!("{} tries to counter but whiffs!", defender.name())
-                                });
-                                2
-                            }
-                        }
-                    };
-                    (defense, def)
+                    }
                 };
+                (defense, def)
+            };
 
-                if damage + def <= 0 {
-                    logger(&|| {
-                        format!(
-                            "A defense of {} means {} takes no damage.",
-                            def.abs(),
-                            defender.name()
-                        )
-                    });
+            if damage + def <= 0 {
+                logger(&|| {
+                    format!(
+                        "A defense of {} means {} takes no damage.",
+                        def.abs(),
+                        defender.name()
+                    )
+                });
+                return None;
+            }
+
+            if matches!(attack, AttackResult::Special(_)) && matches!(defense, DefenceResult::Open)
+            {
+                logger(&|| {
+                    format!(
+                        "{} takes a direct hit from a special attack! They look hurt.",
+                        defender.name()
+                    )
+                });
+                defender.injuries[target] += hit_count;
+            }
+
+            let total_damage = (damage + def + defender.injuries[target]) * hit_count;
+            if Self::do_damage(logger, defender, total_damage) {
+                return Some(attacker.fighter);
+            }
+
+            exchange_damage += total_damage;
+            if exchange_damage >= 10 {
+                logger(&|| format!("{} goes down!", defender.name()));
+                defender.knockdowns += 1;
+                let down_roll = self.rng.sample(*D6) + self.rng.sample(*D6);
+                if down_roll >= 3 + (defender.knockdowns * 2) {
+                    for count in 1..(12 - down_roll) {
+                        logger(&|| format!("{}!", count));
+                    }
+
+                    logger(&|| format!("{} gets back up!", defender.name()));
                     return None;
-                }
-
-                if matches!(attack, AttackResult::Special(_))
-                    && matches!(defense, DefenceResult::Open)
-                {
-                    logger(&|| {
-                        format!(
-                            "{} takes a direct hit from a special attack! They look hurt.",
-                            defender.name()
-                        )
-                    });
-                    defender.injuries[target] += hit_count;
-                }
-
-                let total_damage = (damage + def + defender.injuries[target]) * hit_count;
-                if Self::do_damage(logger, defender, total_damage) {
+                } else {
+                    for count in 1..=10 {
+                        logger(&|| format!("{}!", count));
+                    }
+                    logger(&|| format!("{} is counted out!", defender.name()));
                     return Some(attacker.fighter);
                 }
-
-                exchange_damage += total_damage;
-                if exchange_damage >= 10 {
-                    logger(&|| format!("{} goes down!", defender.name()));
-                    defender.knockdowns += 1;
-                    let down_roll = self.rng.sample(*D6) + self.rng.sample(*D6);
-                    if down_roll >= 3 + (defender.knockdowns * 2) {
-                        for count in 1..(12 - down_roll) {
-                            logger(&|| format!("{}!", count));
-                        }
-
-                        logger(&|| format!("{} gets back up!", defender.name()));
-                        return None;
-                    } else {
-                        for count in 1..=10 {
-                            logger(&|| format!("{}!", count));
-                        }
-                        logger(&|| format!("{} is counted out!", defender.name()));
-                        return Some(attacker.fighter);
-                    }
-                } else if exchange_damage >= 7 {
-                    logger(&|| format!("{} looks dazed from the exchange!", defender.name()));
-                    let clinch_roll = self.rng.sample(*D6);
-                    if clinch_roll >= 5 {
-                        logger(&|| format!("{} clinches to recover!", defender.name()));
-                        return None;
-                    }
+            } else if exchange_damage >= 7 {
+                logger(&|| format!("{} looks dazed from the exchange!", defender.name()));
+                let clinch_roll = self.rng.sample(*D6);
+                if clinch_roll >= 5 {
+                    logger(&|| format!("{} clinches to recover!", defender.name()));
+                    return None;
                 }
             }
         }
