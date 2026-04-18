@@ -106,7 +106,8 @@ impl<'a> Fight<'a> {
         loop {
             if combo_count.is_none() && self.rng.sample(*DIRTY_FIGHTING) {
                 logger(&|| format!("{} is fighting dirty!", attacker.name()));
-                defender.current_health -= 1;
+
+                let dead = Self::do_damage(logger, defender, 1);
 
                 let dirty_roll = self.rng.sample(*D6);
                 if dirty_roll >= 5 {
@@ -124,8 +125,7 @@ impl<'a> Fight<'a> {
                     dirty_hit = true;
                 }
 
-                if defender.current_health <= 0 {
-                    logger(&|| "TKO!".to_string());
+                if dead {
                     return Some(attacker.fighter);
                 }
             } else {
@@ -190,7 +190,20 @@ impl<'a> Fight<'a> {
                             logger(&|| format!("{} dodges the attack!", defender.name()));
                             return None;
                         }
-                        DefenceResult::Counter => todo!(),
+                        DefenceResult::Counter => {
+                            if self.rng.random() {
+                                logger(&|| format!("{} counters the attack!", defender.name()));
+                                if Self::do_damage(logger, attacker, 2) {
+                                    return Some(defender.fighter);
+                                }
+                                return None;
+                            } else {
+                                logger(&|| {
+                                    format!("{} tries to counter but whiffs!", defender.name())
+                                });
+                                2
+                            }
+                        }
                     };
                     (defense, def)
                 };
@@ -219,18 +232,7 @@ impl<'a> Fight<'a> {
                 }
 
                 let total_damage = (damage + def + defender.injuries[target]) * hit_count;
-                defender.current_health -= total_damage;
-                logger(&|| {
-                    format!(
-                        "{} takes {} damage! Current health: {}",
-                        defender.name(),
-                        total_damage,
-                        defender.current_health
-                    )
-                });
-
-                if defender.current_health <= 0 {
-                    logger(&|| "TKO!".to_string());
+                if Self::do_damage(logger, defender, total_damage) {
                     return Some(attacker.fighter);
                 }
 
@@ -256,6 +258,28 @@ impl<'a> Fight<'a> {
                 }
             }
         }
+    }
+
+    fn do_damage<L: FnMut(&dyn Fn() -> String)>(
+        logger: &mut L,
+        defender: &mut FightFighter,
+        damage: i16,
+    ) -> bool {
+        defender.current_health -= damage;
+        logger(&|| {
+            format!(
+                "{} takes {} damage! Current health: {}",
+                defender.name(),
+                damage,
+                defender.current_health
+            )
+        });
+
+        if defender.current_health <= 0 {
+            logger(&|| "TKO!".to_string());
+            return true;
+        }
+        false
     }
 
     fn do_healing<L: FnMut(&dyn Fn() -> String)>(&mut self, logger: &mut L) {
