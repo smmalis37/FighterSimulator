@@ -212,7 +212,7 @@ impl<'a> Fight<'a> {
                     logger(&|| {
                         format!(
                             "A defense of {} means {} takes no damage.",
-                            def,
+                            def.abs(),
                             defender.name()
                         )
                     });
