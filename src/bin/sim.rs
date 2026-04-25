@@ -71,6 +71,10 @@ fn gen_fighters() -> Vec<Fighter> {
                 name,
                 AttackDie::from_usize(attack),
                 DefenceDie::from_usize(defense),
+                false,
+                false,
+                false,
+                false,
             );
 
             fighters.push(fighter);

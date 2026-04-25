@@ -47,7 +47,6 @@ pub fn main() {
         }
     }
 }
-
 fn get_fighter() -> Fighter {
     let name = get_value("Enter the fighter's name:");
 
@@ -72,7 +71,21 @@ fn get_fighter() -> Fighter {
     let defense = get_value("Enter the the fighter's defense die: ");
     let defense = DefenceDie::from_usize(defense);
 
-    let f = Fighter::new(name, attack, defense);
+    let cutman: YesNo = get_value("Does the fighter have a cut man? (y/n)");
+    let strength_training: YesNo = get_value("Does the fighter have strength training? (y/n)");
+    let impenetrable_guard: YesNo = get_value("Does the fighter have an impenetrable guard? (y/n)");
+    let champions_resilience: YesNo =
+        get_value("Does the fighter have champion's resilience? (y/n)");
+
+    let f = Fighter::new(
+        name,
+        attack,
+        defense,
+        cutman.0,
+        strength_training.0,
+        impenetrable_guard.0,
+        champions_resilience.0,
+    );
 
     serde_json::to_writer(File::create(format!("{}.txt", f.name())).unwrap(), &f).unwrap();
 
@@ -90,6 +103,20 @@ fn get_value<T: FromStr>(prompt: &str) -> T {
             break value;
         } else {
             println!("Invalid input.");
+        }
+    }
+}
+
+struct YesNo(bool);
+
+impl FromStr for YesNo {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "y" | "yes" => Ok(YesNo(true)),
+            "n" | "no" => Ok(YesNo(false)),
+            _ => Err(()),
         }
     }
 }

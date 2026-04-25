@@ -17,6 +17,7 @@ struct FightFighter<'a> {
     injuries: EnumMap<Target, i16>,
     warnings: u8,
     knockdowns: i16,
+    resilience_used: bool,
     hearty_used: bool,
 }
 
@@ -29,6 +30,7 @@ impl<'a> FightFighter<'a> {
             warnings: 0,
             knockdowns: 0,
             hearty_used: false,
+            resilience_used: false,
         }
     }
 }
@@ -123,7 +125,7 @@ impl<'a> Fight<'a> {
             {
                 logger(&|| format!("{} is fighting dirty!", attacker.name()));
 
-                let dead = Self::do_damage(logger, defender, 1);
+                let dead = Self::do_damage(logger, attacker, defender, 1);
 
                 let dirty_roll = self.rng.sample(*D6);
                 if dirty_roll >= 5 {
@@ -161,7 +163,7 @@ impl<'a> Fight<'a> {
                     logger(&|| "The ref missed it!".to_string());
                     dirty_hit = true;
 
-                    if Self::do_damage(logger, defender, 2) {
+                    if Self::do_damage(logger, attacker, defender, 2) {
                         return Some(attacker.fighter);
                     }
                     continue;
@@ -190,6 +192,7 @@ impl<'a> Fight<'a> {
                 (DefenceResult::Open, 3)
             } else {
                 let defense = defender.defence().roll(&mut self.rng);
+                let guard = if defender.impenetrable_guard() { -1 } else { 0 };
                 let def = match defense {
                     DefenceResult::Open => {
                         logger(&|| format!("{} is wide open!", defender.name()));
@@ -198,7 +201,7 @@ impl<'a> Fight<'a> {
                     DefenceResult::GuardUp(block, miss) => match target {
                         Target::Head => {
                             logger(&|| format!("{} blocks the attack!", defender.name()));
-                            block
+                            block + guard
                         }
                         Target::Body => {
                             logger(&|| format!("{} mistakenly guards high!", defender.name()));
@@ -212,7 +215,7 @@ impl<'a> Fight<'a> {
                         }
                         Target::Body => {
                             logger(&|| format!("{} blocks the attack!", defender.name()));
-                            block
+                            block + guard
                         }
                     },
                     DefenceResult::Dodge => {
@@ -222,7 +225,7 @@ impl<'a> Fight<'a> {
                     DefenceResult::Counter(multiplier) => {
                         if self.rng.random() {
                             logger(&|| format!("{} counters the attack!", defender.name()));
-                            if Self::do_damage(logger, attacker, 2 * multiplier) {
+                            if Self::do_damage(logger, defender, attacker, 2 * multiplier) {
                                 return Some(defender.fighter);
                             }
                             return None;
@@ -269,7 +272,7 @@ impl<'a> Fight<'a> {
             if matches!(defender.attack(), AttackDie::Jobber) {
                 total_damage += 2;
             }
-            if Self::do_damage(logger, defender, total_damage) {
+            if Self::do_damage(logger, attacker, defender, total_damage) {
                 return Some(attacker.fighter);
             }
 
@@ -291,6 +294,18 @@ impl<'a> Fight<'a> {
                         logger(&|| format!("{}!", count));
                     }
                     logger(&|| format!("{} gets back up with a hearty spirit!", defender.name()));
+                    return None;
+                } else if defender.champions_resilience() && !defender.resilience_used {
+                    defender.resilience_used = true;
+                    for count in 1..=9 {
+                        logger(&|| format!("{}!", count));
+                    }
+                    logger(&|| {
+                        format!(
+                            "{} gets back up with a champions resilience!",
+                            defender.name()
+                        )
+                    });
                     return None;
                 } else if matches!(defender.attack(), AttackDie::Jobber) {
                     for count in 1..=9 {
@@ -320,9 +335,14 @@ impl<'a> Fight<'a> {
 
     fn do_damage<L: FnMut(&dyn Fn() -> String)>(
         logger: &mut L,
+        attacker: &FightFighter,
         defender: &mut FightFighter,
-        damage: i16,
+        mut damage: i16,
     ) -> bool {
+        if attacker.strength_training() {
+            damage += 1;
+        }
+
         defender.current_health -= damage;
         logger(&|| {
             format!(
@@ -342,6 +362,16 @@ impl<'a> Fight<'a> {
 
     fn do_healing<L: FnMut(&dyn Fn() -> String)>(&mut self, logger: &mut L) {
         for fighter in [&mut self.f1, &mut self.f2] {
+            if fighter.cut_man() {
+                if fighter.injuries[Target::Head] > 0 {
+                    fighter.injuries[Target::Head] -= 1;
+                    logger(&|| format!("{}'s cut man heals a head injury!", fighter.name(),));
+                } else if fighter.injuries[Target::Body] > 0 {
+                    fighter.injuries[Target::Body] -= 1;
+                    logger(&|| format!("{}'s cut man heals a body injury!", fighter.name(),));
+                }
+            }
+
             let heal_roll = self.rng.sample(*D6);
             if heal_roll == 6 && fighter.injuries[Target::Head] > 0 {
                 fighter.injuries[Target::Head] -= 1;
